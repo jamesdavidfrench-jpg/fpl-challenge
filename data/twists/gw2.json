@@ -1,0 +1,15 @@
+{
+  "event": 2,
+  "name": "Welcome Back",
+  "description": "Double points for players from the three promoted clubs. Up to three players per club, six players, unlimited budget.",
+  "player_multipliers": [
+    {
+      "factor": 2,
+      "teams": ["COV", "IPS", "HUL"],
+      "_note": "Coventry City, Ipswich Town and Hull City are the three clubs promoted for 2026/27, named explicitly in the Premier League announcement article. The live site says only 'the promoted clubs' without naming them, so the club list comes from the article rather than the site."
+    }
+  ],
+  "scoring_multipliers": {},
+  "source": "https://fplchallenge.premierleague.com/ home page, read 2026-08-23: \"Gameweek 2 Challenge - Welcome Back - Double Points for players from the promoted clubs. Up to three players per club.\" Club names from https://www.premierleague.com/en/news/4683622/fpl-challenge-is-live-for-202627-see-the-first-five-challenges. The three-per-club limit is independently confirmed by the API: event 2 overrides.rules.squad_team_limit = 3.",
+  "verified_on": "2026-08-23"
+}
