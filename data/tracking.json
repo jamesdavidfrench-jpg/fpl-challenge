@@ -1,0 +1,75 @@
+{
+ "1": {
+  "event": 1,
+  "event_name": "Gameweek 1",
+  "twist": "Instant Impact",
+  "recorded_at": "2026-08-21T17:12:28Z",
+  "projected": 52.8,
+  "captain_code": 437499,
+  "picks": [
+   {
+    "code": 437499,
+    "challenge_id": 200,
+    "name": "Lacroix",
+    "team": "CHE",
+    "position": "DEF",
+    "projected": 8.492,
+    "multiplier": 2.0,
+    "low_confidence": false
+   },
+   {
+    "code": 240514,
+    "challenge_id": 567,
+    "name": "Scherpen",
+    "team": "IPS",
+    "position": "GKP",
+    "projected": 6.926,
+    "multiplier": 2.0,
+    "low_confidence": true
+   },
+   {
+    "code": 215379,
+    "challenge_id": 481,
+    "name": "Anderson",
+    "team": "MCI",
+    "position": "MID",
+    "projected": 9.27,
+    "multiplier": 2.0,
+    "low_confidence": false
+   },
+   {
+    "code": 141746,
+    "challenge_id": 426,
+    "name": "B.Fernandes",
+    "team": "MUN",
+    "position": "MID",
+    "projected": 6.213,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 551226,
+    "challenge_id": 525,
+    "name": "Fernandes",
+    "team": "TOT",
+    "position": "MID",
+    "projected": 7.1,
+    "multiplier": 2.0,
+    "low_confidence": false
+   },
+   {
+    "code": 551466,
+    "challenge_id": 561,
+    "name": "Gonzalo",
+    "team": "FUL",
+    "position": "FWD",
+    "projected": 6.32,
+    "multiplier": 2.0,
+    "low_confidence": true
+   }
+  ],
+  "original_projected": 49.4,
+  "model_note": "Reprojected 2026-08-23 after two solver fixes: confirmed starters get a starter's minutes share, and the no-PL-history prior takes an ownership uplift. Original projection under the pre-fix model was 49.4. Watkins (AVL, not doubled) swapped for Gonzalo (FUL, doubled) before the 13:00Z lock; the other five unchanged.",
+  "revised_at": "2026-08-23T08:28:00Z"
+ }
+}

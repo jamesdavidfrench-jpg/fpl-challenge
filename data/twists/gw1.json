@@ -1,0 +1,15 @@
+{
+  "event": 1,
+  "name": "Instant Impact",
+  "description": "Double points for summer signings. One player per club, six players, no goalkeeper in the formation picker, unlimited budget.",
+  "player_multipliers": [
+    {
+      "factor": 2,
+      "team_join_date_after": "2026-06-01",
+      "_note": "Matches 102 players as of 2026-08-20 (was 96 on 2026-08-17 - the window is still open, so re-check before the deadline). The stated rule also includes permanent signings from loan and youth debutants, who may not carry a June-2026 join date, so this set is close but not exact."
+    }
+  ],
+  "scoring_multipliers": {},
+  "source": "https://fplchallenge.premierleague.com/ home page, re-read 2026-08-20: \"Gameweek 1 Challenge - Instant Impact - Double Points for summer signings. One player per club.\" Originally from https://www.premierleague.com/en/news/4683622/fpl-challenge-is-live-for-202627-see-the-first-five-challenges",
+  "verified_on": "2026-08-20"
+}

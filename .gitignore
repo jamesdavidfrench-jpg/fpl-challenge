@@ -1,0 +1,10 @@
+# Cached API responses - 12MB, 577 files, all regenerable by fpl_data.py
+data/cache/
+
+# Generated each run from the cache
+data/players.json
+
+# Local backups and Python bytecode
+*.bak
+__pycache__/
+*.pyc
