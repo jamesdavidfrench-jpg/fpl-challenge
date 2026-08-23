@@ -27,6 +27,13 @@ python scripts/fpl_track.py record
 1. **Refresh the data.** Run `fpl_data.py`. It writes `data/players.json` and
    reports which gameweek is open.
 
+   If the fetch fails with a 403 egress policy error, this session is running in
+   a sandbox that cannot reach premierleague.com - a session started from the
+   phone, for example. Do not retry; nothing will change. `players.json` is
+   committed to the repo, so skip straight to solving and use whatever was last
+   pushed from the desktop. `fpl_solve.py` warns when that file is more than 12
+   hours old and refuses to solve a gameweek that has already finished.
+
 2. **Check the twist is known and current.** Look for
    `data/twists/gw<N>.json`. The gameweek's *squad* rules come from the API and
    are trustworthy. The *scoring* twist does not - `overrides.scoring` has been

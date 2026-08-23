@@ -845,6 +845,49 @@ def load_twist(event_id):
     return None
 
 
+# players.json used to be rebuilt immediately before every solve, so how old it
+# was never mattered. Once it is committed and read on a machine that cannot
+# reach premierleague.com to refresh it, age becomes the main way this gives a
+# confident wrong answer: prices, injuries and the gameweek itself all move
+# underneath a file that still looks perfectly valid.
+STALE_AFTER_HOURS = 12
+
+
+def check_freshness(data, allow_stale=False):
+    """Warn if players.json is old, refuse outright if its gameweek has finished."""
+    ev = data["event"]
+    fixtures = data.get("fixtures") or []
+
+    # Every match played means this file describes a gameweek that is over. The
+    # solver would still happily return a squad for it, which is the one failure
+    # worth making fatal.
+    if fixtures and all(f.get("finished") for f in fixtures):
+        print(
+            f"{ev['name']} has finished - every fixture in players.json is played.\n"
+            f"Refresh with `python scripts/fpl_data.py` (needs network access), "
+            f"or pass --stale-ok to solve for it anyway.",
+            file=sys.stderr,
+        )
+        if not allow_stale:
+            sys.exit(1)
+        return
+
+    try:
+        built = datetime.strptime(data["generated"], "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        )
+    except (KeyError, ValueError):
+        return
+    hours = (datetime.now(timezone.utc) - built).total_seconds() / 3600
+    if hours >= STALE_AFTER_HOURS:
+        print(
+            f"warning: players.json is {hours:.0f} hours old (built "
+            f"{data['generated']}). Prices, injuries and expected lineups have "
+            f"probably moved since. Run `python scripts/fpl_data.py` to refresh.\n",
+            file=sys.stderr,
+        )
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--alternatives", type=int, default=3)
@@ -852,9 +895,12 @@ def main():
                     help="include players whose match has already kicked off "
                          "(they are normally locked and cannot be added)")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--stale-ok", action="store_true",
+                    help="solve even if players.json is for a finished gameweek")
     args = ap.parse_args()
 
     data = load()
+    check_freshness(data, allow_stale=args.stale_ok)
     ev = data["event"]
     twist = load_twist(ev["id"])
     con = constraints(data, twist)

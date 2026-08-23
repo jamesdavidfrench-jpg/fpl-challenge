@@ -1,8 +1,11 @@
 # Cached API responses - 12MB, 577 files, all regenerable by fpl_data.py
 data/cache/
 
-# Generated each run from the cache
-data/players.json
+# data/players.json is deliberately NOT ignored. It is generated from the cache,
+# so it looks disposable, but it is the only file the solver needs and it is the
+# one thing a sandboxed session cannot rebuild - refreshing it requires reaching
+# premierleague.com, which a cloud container's egress proxy blocks. Committing it
+# is what lets the picker run somewhere other than James's desktop.
 
 # Local backups and Python bytecode
 *.bak
