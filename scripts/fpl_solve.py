@@ -191,6 +191,37 @@ def _rates_from_history(p):
 # Goals conceded costs a point for every second goal let in during a match.
 GOALS_PER_CONCEDE_PENALTY = 2
 
+# Saves pay a point for every third save in a match, not a point each. The
+# scoring config reads `"saves": 1`, which is easy to read as one point per
+# save; the engine means one point per SAVES_PER_POINT saves. Checked against
+# the GW1 scoring breakdown for all 20 starting keepers: 20 of 20 match one per
+# three, 0 of 20 match one each. Tzolakis made five saves and was given one
+# point for them, doubled to two by the twist.
+#
+# This matters more than it sounds. Keepers averaged 2.95 saves a match in GW1,
+# so a point per save adds about two points to every keeper every week - enough
+# to put five of them in the model's top twenty and one at the very top.
+SAVES_PER_POINT = 3
+
+
+def _expected_floor_units(lam, per):
+    """Expected value of floor(N / per) where N is Poisson with mean lam.
+
+    Both saves and goals conceded pay per whole block within a single match and
+    round down, so neither can be worked out from a season total - a keeper
+    making two saves in each of twenty matches earns nothing, while the season
+    total of forty suggests thirteen points. The expectation has to be taken
+    over a per-match distribution.
+    """
+    if lam <= 0:
+        return 0.0
+    total, term = 0.0, math.exp(-lam)
+    for k in range(0, 30):
+        if k:
+            term *= lam / k
+        total += (k // per) * term
+    return total
+
 
 def _expected_concede_units(cs_prob):
     """Expected number of conceding penalties in one match.
@@ -206,12 +237,7 @@ def _expected_concede_units(cs_prob):
     two can never contradict each other.
     """
     lam = -math.log(max(cs_prob, 1e-6))
-    total, term = 0.0, math.exp(-lam)
-    for k in range(0, 15):
-        if k:
-            term *= lam / k
-        total += (k // GOALS_PER_CONCEDE_PENALTY) * term
-    return total
+    return _expected_floor_units(lam, GOALS_PER_CONCEDE_PENALTY)
 
 
 def _poisson_at_least(k, lam):
@@ -237,10 +263,66 @@ def _poisson_at_least(k, lam):
     return max(0.0, min(1.0, 1.0 - cumulative))
 
 
-# A player named in the starting eleven plays this match. Not 1.0, because some
-# starters come off before the final whistle - but nowhere near the season-long
-# share of 38 games that minutes_share otherwise carries.
+# How much of a match a player is expected to be on the pitch for.
+#
+# STARTER_MINUTES_SHARE is the ceiling: a player who definitely starts still
+# does not average a full match, because some starters come off. Everything
+# below it is about how much to believe the expected eleven in starters.json,
+# which is a hand-checked guess rather than a fact.
+#
+# GW1 measured that guess. Of the 214 players it named, only 70% played an hour
+# and 14% did not play at all - and the misses were not spread evenly. They
+# concentrated almost entirely among players the market had no interest in:
+#
+#     ownership   named in XI   share of a match actually played
+#      under 1%        68                 0.47
+#         1-2%        40                 0.74
+#         2-5%        43                 0.75
+#        5-10%        26                 0.83
+#       10-25%        25                 0.86
+#      over 25%        12                 0.97
+#
+# Every one of the eight top-30 picks that failed to start was named in the XI
+# file and owned by under 3% of managers. So ownership is the check on the XI
+# file that was missing: it is a few million managers voting on who plays, and
+# in GW1 it was right where the hand-drafted eleven was wrong.
+#
+# The curves below are fitted to those bands by weighted least squares, with the
+# ceiling pinned at STARTER_MINUTES_SHARE. Fitted on one gameweek - re-fit them
+# once there are three or four, and expect the numbers to move.
+XI_SHARE_FLOOR = 0.41
+XI_SHARE_SCALE = 2.3
+
+# Same idea for a player the XI file leaves out. The current-season evidence is
+# thinner here: only three ownership bands had enough players to fit, and none
+# of them above 3% owned, so the top of this curve is extrapolation. It replaces
+# a flat 0.30 that was not fitted to anything at all, and it fixes an obvious
+# failure - Odegaard, 10.6% owned and plainly an Arsenal starter, was left out
+# of the drafted eleven and projected at 0.87 points.
+BENCH_SHARE_FLOOR = 0.19
+BENCH_SHARE_SCALE = 10.4
+
+# Below this ownership, a naming in the expected eleven is worth saying out loud
+# rather than quietly discounting. Set where the GW1 misses stopped: all eight
+# of the top-30 picks that failed to start were under 3% owned.
+XI_OWNERSHIP_WARN = 3.0
+
 STARTER_MINUTES_SHARE = 0.92
+
+
+def start_share(owned, named_in_xi):
+    """Share of a match a player is expected to play, given how many managers own him.
+
+    Saturating rather than linear: the difference between 0.5% and 3% owned says
+    a great deal about whether someone starts, and the difference between 20%
+    and 40% says almost nothing.
+    """
+    own = max(0.0, owned or 0.0)
+    floor_, scale = (
+        (XI_SHARE_FLOOR, XI_SHARE_SCALE) if named_in_xi
+        else (BENCH_SHARE_FLOOR, BENCH_SHARE_SCALE)
+    )
+    return floor_ + (STARTER_MINUTES_SHARE - floor_) * (1 - math.exp(-own / scale))
 
 # Ownership uplift for players with no Premier League record. Capped so a
 # bandwagon cannot run away with a projection that is already a guess.
@@ -331,18 +413,29 @@ def project(data, scoring, starters=None):
             rates = _price_prior(p)
             low_conf = True
 
-        # A named starter plays this match, whatever his record says about how
-        # often he played across a whole season. minutes_share is a share of 38
-        # games, so a player who spent last year on the bench drags that share
-        # into a week he is confirmed to start - it cut Trafford, Leeds' number
-        # one, to 27% of his projection and made him unpickable. Raise it,
-        # never lower it: being named in the eleven is evidence he plays, never
-        # evidence he plays less than his history suggests.
+        # A named starter plays more of this match than his season-long record
+        # suggests. minutes_share is a share of 38 games, so a player who spent
+        # last year on the bench drags that share into a week he is named to
+        # start - it cut Trafford, Leeds' number one, to 27% of his projection
+        # and made him unpickable.
+        #
+        # How much more depends on whether the market agrees he starts. A naming
+        # nobody owns is worth much less than a naming everybody owns, which is
+        # what start_share() encodes.
+        #
+        # Still raise, never lower. Ownership can stop a naming lifting a player
+        # much, but it must not push him below what his own minutes record
+        # supports, because ownership follows attacking returns rather than
+        # starts - holding midfielders and defensive full-backs play every week
+        # and are barely owned. Lowering as well as raising scored the same
+        # squad in GW1 and ranked slightly better, but it would have punished
+        # exactly those players, so it is not worth the trade.
+        history_share = rates["minutes_share"]
         confirmed_starter = p["code"] in xi
         if confirmed_starter:
             rates = dict(rates)
             rates["minutes_share"] = max(
-                rates["minutes_share"], STARTER_MINUTES_SHARE
+                history_share, start_share(p.get("owned"), True)
             )
 
         games = by_team.get(p["team_id"], [])
@@ -358,7 +451,7 @@ def project(data, scoring, starters=None):
             pts += rates["assists"] * atk * assist_pts
             pts += cs_prob * cs_pts.get(pos, 0)
             if pos == 1:
-                pts += rates["saves"] * save_pts
+                pts += _expected_floor_units(rates["saves"], SAVES_PER_POINT) * save_pts
             # Goals conceded hits keepers and defenders alike. Previously only
             # keepers carried it, and as a flat guess rather than the real
             # per-match rounding.
@@ -389,6 +482,8 @@ def project(data, scoring, starters=None):
                 "backup_keeper": False,
                 "depth_rank": None,
                 "confirmed_starter": confirmed_starter,
+                "minutes_share": round(rates["minutes_share"], 3),
+                "history_minutes_share": round(history_share, 3),
             }
         )
 
@@ -451,11 +546,25 @@ def _demote_squad_players(players, starters=None):
         for p in players:
             if p["code"] in xi:
                 continue
-            is_keeper = p["position"] == POS_ID["GKP"]
-            p["expected"] = round(p["expected"] * (0.12 if is_keeper else 0.30), 3)
-            p["not_expected_to_start"] = True
-            if is_keeper:
+            # Keepers stay a flat cut, because they are structural: exactly one
+            # plays, so a keeper the eleven leaves out is the reserve and that
+            # is the end of it. Ownership adds nothing to a binary fact.
+            if p["position"] == POS_ID["GKP"]:
+                p["expected"] = round(p["expected"] * 0.12, 3)
+                p["not_expected_to_start"] = True
                 p["backup_keeper"] = True
+                continue
+            # Outfield is not binary. Being left out of a drafted eleven is
+            # weak evidence, and it gets weaker the more managers own the
+            # player - at some point it stops meaning "benched" and starts
+            # meaning "the draft missed him". Scale to the fitted share for an
+            # unnamed player rather than cutting everyone by the same 0.30.
+            hist = p.get("history_minutes_share") or p.get("minutes_share") or 0.0
+            target = min(hist, start_share(p.get("owned"), False))
+            factor = target / hist if hist > 0 else 0.30
+            p["expected"] = round(p["expected"] * factor, 3)
+            p["minutes_share"] = round(target, 3)
+            p["not_expected_to_start"] = True
         return
 
     keepers_by_team = {}
@@ -815,6 +924,13 @@ def reason(p, con, twist_name):
         bits.append(f"{p['multiplier']:.0f}x from the {twist_name} rule")
     if p["n_fixtures"] > 1:
         bits.append(f"{p['n_fixtures']} fixtures")
+    # The GW1 failure mode, made visible. Every one of the eight top-30 picks
+    # that did not start was named in the expected eleven and owned by under 3%
+    # of managers. The projection already damps these; this is so the damping is
+    # not the only thing standing between a hand-drafted guess and the team.
+    if p.get("confirmed_starter") and (p.get("owned") or 0.0) < XI_OWNERSHIP_WARN:
+        bits.append(f"only {p.get('owned') or 0:.1f}% owned - the market does "
+                    f"not expect him to start, check this one")
     if p.get("backup_keeper"):
         bits.append("likely backup keeper")
     elif p.get("depth_rank"):

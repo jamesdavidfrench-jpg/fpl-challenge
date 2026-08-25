@@ -15,7 +15,8 @@
     "position": "DEF",
     "projected": 8.492,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 12
    },
    {
     "code": 240514,
@@ -25,7 +26,8 @@
     "position": "GKP",
     "projected": 6.926,
     "multiplier": 2.0,
-    "low_confidence": true
+    "low_confidence": true,
+    "actual": 4
    },
    {
     "code": 215379,
@@ -35,7 +37,8 @@
     "position": "MID",
     "projected": 9.27,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 4
    },
    {
     "code": 141746,
@@ -45,7 +48,8 @@
     "position": "MID",
     "projected": 6.213,
     "multiplier": 1.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 2
    },
    {
     "code": 551226,
@@ -55,7 +59,8 @@
     "position": "MID",
     "projected": 7.1,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 2
    },
    {
     "code": 551466,
@@ -65,11 +70,15 @@
     "position": "FWD",
     "projected": 6.32,
     "multiplier": 2.0,
-    "low_confidence": true
+    "low_confidence": true,
+    "actual": 12
    }
   ],
   "original_projected": 49.4,
   "model_note": "Reprojected 2026-08-23 after two solver fixes: confirmed starters get a starter's minutes share, and the no-PL-history prior takes an ownership uplift. Original projection under the pre-fix model was 49.4. Watkins (AVL, not doubled) swapped for Gonzalo (FUL, doubled) before the 13:00Z lock; the other five unchanged.",
-  "revised_at": "2026-08-23T08:28:00Z"
+  "revised_at": "2026-08-23T08:28:00Z",
+  "actual": 48,
+  "average_entry_score": 34,
+  "highest_score": 126
  }
 }

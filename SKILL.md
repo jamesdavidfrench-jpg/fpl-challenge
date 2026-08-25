@@ -75,13 +75,30 @@ given. Names are matched without accents, so "Muharemovic" finds
 "Muharemović". It refuses ambiguous or misspelled names rather than guessing,
 and warns when a named player is injured.
 
+**The draft is a guess, and GW1 measured how good a guess.** Of the 214 players
+it named, 70% played an hour and 14% did not play at all. The misses were not
+random: every one of the eight highest-projected picks that failed to start was
+named here and owned by under 3% of managers. The projection now reads ownership
+as a check on this file - a naming nobody owns lifts a player far less than a
+naming everybody owns - but that only limits the damage. Fixing the file is
+still better than damping it.
+
+So when reviewing the draft, **look at the low-ownership names first**. They are
+where it is wrong.
+
 Two things the draft cannot work out on its own, so check them:
 
 - **Formation.** The draft assumes a back four. Clubs playing three at the back
   field five defenders in Fantasy terms, because wing-backs count as defenders.
   Correct those clubs by hand or the picker is choosing from the wrong four.
 - **Holding midfielders.** They start every week but are barely owned, because
-  ownership follows attacking returns. The draft under-rates them.
+  ownership follows attacking returns. The draft under-rates them, and so does
+  the ownership check above - which is exactly why that check can only ever
+  raise a named player's minutes, never lower them below his own record.
+- **Players the draft leaves out entirely.** Being left out is weaker evidence
+  than being named, and it gets weaker the more managers own the player. GW1
+  left Odegaard out of Arsenal's eleven at 10.6% ownership and projected him at
+  0.87 points; he played 75 minutes and scored 11.
 
 Premier League publish predicted line-ups for all 20 clubs before the season
 (search "how every Premier League club could line up"). The squad lists in those
@@ -137,10 +154,31 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   in the two games. The scripts already do this; keep it that way in any new
   code.
 - **Challenge scoring is not FPL scoring.** Goals are worth 10/6/5/4 by position
-  (GKP/DEF/MID/FWD), saves are 1 each rather than 1 per 3, and there is no
-  vice-captain. Forwards are worth noticeably less here than in normal FPL.
+  (GKP/DEF/MID/FWD) and there is no vice-captain. Forwards are worth noticeably
+  less here than in normal FPL.
+- **Saves are 1 point per 3, the same as normal FPL, despite what the config
+  says.** `game_config.scoring.saves` reads `1`, which looks like a point per
+  save. It is not: it is a point per three. Checked against the GW1 breakdown
+  for all 20 starting keepers - 20 of 20 match one per three, none match one
+  each. Reading it the other way adds about two points to every keeper every
+  week and floats them to the top of the board.
 - **Unreleased gameweeks have placeholder rules.** Only trust `overrides` when
   the event has `released: true`. Rules for future weeks do change.
+
+## Settled by GW1 - do not re-open these
+
+- **The API applies the twist to the points it reports.** Each affected stat in
+  `event/<n>/live/` carries a `points_modification` field holding the extra the
+  twist added, and `total_points` already includes it. Doubling applies to the
+  negatives as well, so a doubled defender's two goals conceded cost 2.
+- **Defensive contribution, clean sheets and bonus are well calibrated.** GW1
+  measured them: 25.9% of starting defenders were projected to clear the
+  defensive bar and 22.4% did; midfielders 15.2% against 14.0%; clean sheets
+  26.9% against 30%; bonus 0.286 per starter against 0.295. The threshold model
+  and the clean-sheet anchoring both work. Leave them alone.
+- **Goals and assists for defenders and midfielders are within a couple of
+  hundredths per match.** Forwards looked off - 0.39 goals projected against
+  0.26 actual - but that is 19 players in one week, which is noise.
 
 ## Known limitations - be honest about these in output
 
@@ -187,9 +225,23 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   `no PL history, price-based estimate` - treat them as lower confidence.
 - **Early season has no current-season data at all.** Projections lean on prior
   seasons until roughly GW5-6.
-- **Whether the API applies the twist to reported points is unknown** until a
-  gameweek finishes. The tracker records both interpretations and they can be
-  reconciled against James's actual score after the first scored week.
+- **Predicting who plays matters more than predicting how many points.** In GW1,
+  the 22 of the model's top 30 who started were projected 182 and scored 173 -
+  nearly exact. The 8 who did not start were projected 67 and scored 12. That is
+  86% of the whole error in one place. Everything else in this list is small by
+  comparison, so a spare hour goes into `starters.json`, not into the scoring
+  model.
+- **The ownership curves are fitted on a single gameweek.** `XI_SHARE_FLOOR`,
+  `BENCH_SHARE_FLOOR` and their scales came from 214 named and 301 unnamed
+  players in GW1. The shape is well supported at low ownership, where most of
+  the players are; the top of the unnamed curve is extrapolated from three bands
+  that stop at 3% owned. Re-fit after three or four gameweeks.
+- **The model maximises the average, which is the wrong objective for a small
+  league.** It is the right one for finishing well among 354,619 entries. But
+  the GW1 winner scored 126, and even with perfect knowledge of who would start,
+  these projections top out around 72. Winning needs two hauls out of six
+  players, and hauls come from concentrating risk rather than spreading it. The
+  model has no ceiling term and does not know the difference.
 - **The squad returned is exactly optimal when the budget is unlimited**, which
   is every Challenge gameweek so far. If a gameweek ever sets a real budget, the
   solver prices cost into each player and tunes that price until the squad fits,

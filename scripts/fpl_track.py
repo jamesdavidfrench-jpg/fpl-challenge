@@ -127,19 +127,22 @@ def score():
             f"live_{entry['event']}.json",
             0,
         )
+        # The points the API reports already include the weekly twist. This was
+        # an open question until GW1 finished; the scoring breakdown settles it.
+        # Every affected stat carries a points_modification field holding the
+        # extra the twist added - Lacroix's assist reads 6 points with a
+        # modification of 3, so the twist is in the 6. Doubling applies to the
+        # negatives too: his two goals conceded cost 2, not 1.
         pts = {e["id"]: e["stats"]["total_points"] for e in live["elements"]}
 
         raw = 0
-        adjusted = 0
         for p in entry["picks"]:
             base = pts.get(p["challenge_id"], 0)
             mult = 2 if p["code"] == entry["captain_code"] else 1
             raw += base * mult
-            adjusted += base * mult * p.get("multiplier", 1.0)
             p["actual"] = base
 
         entry["actual"] = raw
-        entry["actual_if_twist_not_in_api"] = round(adjusted, 1)
         entry["average_entry_score"] = ev.get("average_entry_score")
         entry["highest_score"] = ev.get("highest_score")
         log[key] = entry
