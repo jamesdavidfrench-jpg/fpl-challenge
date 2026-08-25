@@ -193,14 +193,32 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   zero - never let those zeros into the average, or every defender's rate
   halves. Replace with real per-match counts from `event/<n>/live/` once a few
   gameweeks of 2026/27 exist.
-- **Expected goals are blended 70/30 with goals actually scored**, not used
-  alone, because finishing ability is partly real and partly luck. They are
-  rescaled per position before use - defenders convert only 0.85 of their
-  expected goals, and forwards collect 2.37 times their expected assists. Those
-  factors were measured over three seasons and should be re-measured
-  occasionally; a flat league-wide figure marks forwards down by nearly half.
-  Expected goals also only exist from 2022/23, so as with defensive
-  contribution, earlier seasons must be kept out of the average.
+- **Goals come from expected goals scaled by how well the player converts, and
+  how much his own record counts is measured, not chosen.** It used to be a flat
+  70/30 blend, which trusted a half-season exactly as much as six full ones.
+  Now the spread of players' goals-to-expected-goals ratios is split into real
+  differences and the noise of converting a finite number of chances, and the
+  player's own record is weighted by how much evidence stands behind it.
+
+  The measurement is worth knowing before arguing with a projection: **finishing
+  barely varies between players.** Defenders and forwards show a spread smaller
+  than sampling noise on its own, and midfielders sit exactly on the detection
+  limit. A midfielder needs about 91 expected goals - roughly nine full seasons -
+  before his own finishing outweighs the league's. So a player who has beaten his
+  expected goals three years running has most likely been lucky three years
+  running, and the model will not move much for it.
+
+  **Creating is different.** For defenders the spread is more than twice the
+  detection limit, and ten expected assists - a season or two - is enough for a
+  defender's own record to count for half. Midfielders need 42, forwards 28.
+
+  Position scaling still applies underneath: defenders convert 0.85 of their
+  expected goals, forwards collect 2.37 times their expected assists. A flat
+  league-wide assist figure marks forwards down by nearly half.
+
+  Expected goals only exist from 2022/23, so as with defensive contribution,
+  earlier seasons must be kept out. Re-fit all of it once 2026/27 is a full
+  season; the fitting method is documented above `GOAL_PRIOR_STRENGTH`.
 - **Goals conceded is modelled per match, not per season.** The penalty is a
   point per second goal let in, applied per match and rounded down, so season
   totals cannot be halved to get it - a defender letting in one goal in each of

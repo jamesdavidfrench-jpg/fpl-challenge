@@ -70,11 +70,60 @@ DC_THRESHOLD = {2: 10, 3: 12, 4: 12}
 # a ball-winner.
 DC_PRIOR = {1: 0.0, 2: 7.0, 3: 6.0, 4: 3.0}
 
-# How much to trust expected goals over goals actually scored. Expected goals
-# predict future scoring better than past scoring does, because a season of
-# finishing luck does not repeat, but genuine finishing ability is real and
-# persistent - hence a blend rather than replacing one with the other.
-XG_WEIGHT = 0.7
+# How much to trust a player's own conversion record over the league's.
+#
+# This used to be a flat 70/30 blend of expected goals and actual goals. That is
+# the same thing as scaling expected goals by (0.7 * league ratio + 0.3 * the
+# player's own ratio) - a fixed level of trust, applied to everyone, whether
+# their record ran to one half-season or six full ones.
+#
+# The right amount of trust depends on how much evidence there is, so it is
+# measured here rather than set. Across every player-season of 450+ minutes
+# since expected goals began, the spread of players' goals-to-expected-goals
+# ratios splits into two parts: real differences in finishing, and the noise you
+# get from converting a finite number of chances. Method of moments separates
+# them, and the result is the number of expected goals a player must accumulate
+# before his own record counts for as much as the league's.
+#
+# The finding is blunt: finishing barely varies between players, creating does.
+#
+#   goals vs xG      n   real spread   detection limit   a player needs
+#     DEF          100      0.000          0.020            40 xG
+#     MID          160      0.011          0.012            91 xG
+#     FWD           39      0.000          0.006           166 xG
+#
+#   assists vs xA    n   real spread   detection limit   a player needs
+#     DEF           95      0.132          0.059            10 xA
+#     MID          156      0.031          0.021            42 xA
+#     FWD           32      0.086          0.154            28 xA
+#
+# No position shows a spread of finishing ratios clearly above what sampling
+# noise produces on its own. Defenders and forwards measure at exactly zero -
+# their observed spread is smaller than noise alone - and midfielders sit right
+# on the detection limit. So a career of beating expected goals is mostly the
+# luck of which chances fell your way, and the model should barely move for it.
+# Creating is the opposite: for defenders and midfielders the spread is two to
+# three times the limit, and a defender's own assist record is worth something
+# after only ten expected assists, which is a season or two.
+#
+# Where the spread measured as zero, the detection limit is used instead - the
+# smallest real difference this sample could have found. Measuring zero means a
+# strong effect is ruled out, not that there is none, and setting the strength
+# to infinity would throw away a 105-xG career on that technicality. Where the
+# spread measured above zero it is used as measured, even below the limit:
+# raising it to the limit there would hand more trust to a record that cannot be
+# told apart from noise, and over-trusting noise is the worse error for a picker.
+#
+# Goals are Bernoulli draws over shots rather than Poisson, so the sampling
+# noise is xG*(1 - average shot quality), not xG. Shot-level data is not in this
+# feed, so 0.10 is assumed - a typical Premier League shot. The conclusion holds
+# across every value from 0.00 to 0.20; only the midfield figure moves, between
+# 47 and 2132, and it stays far too large to matter.
+#
+# Re-fit these when a season of 2026/27 exists. `_shrunk_rate` is the only
+# consumer.
+GOAL_PRIOR_STRENGTH = {1: None, 2: 40.4, 3: 91.4, 4: 165.9}
+ASSIST_PRIOR_STRENGTH = {1: None, 2: 9.8, 3: 42.4, 4: 28.1}
 
 # Expected goals and assists have to be rescaled before use, and the correction
 # differs sharply by position. Measured over the last three seasons across every
@@ -93,6 +142,28 @@ XG_WEIGHT = 0.7
 # a neutral 1.0 and it makes no practical difference to their projection.
 XG_SCALE = {1: 1.00, 2: 0.848, 3: 1.034, 4: 0.995}
 XA_SCALE = {1: 1.00, 2: 1.303, 3: 1.323, 4: 2.369}
+
+
+def _shrunk_rate(scored, expected, minutes, league_ratio, prior_strength):
+    """Per-90 rate: expected volume, scaled by how well this player converts it.
+
+    The conversion rate is pulled towards the league's by an amount set by how
+    much the player has actually done. A striker with 60 expected goals behind
+    him is judged largely on his own finishing; one with 5 is judged almost
+    entirely on the league's, because five chances cannot tell the two apart.
+
+    prior_strength of None means the league ratio is used outright - which is
+    the honest answer wherever the measurement found no real spread between
+    players at all.
+    """
+    if expected <= 0 or minutes <= 0:
+        return 0.0
+    if prior_strength is None:
+        ratio = league_ratio
+    else:
+        ratio = ((scored + league_ratio * prior_strength)
+                 / (expected + prior_strength))
+    return ratio * expected / minutes * 90
 
 
 # ---------------------------------------------------------------- projection
@@ -159,23 +230,28 @@ def _rates_from_history(p):
     ]
     goals, assists = per90("goals_scored"), per90("assists")
     if xg_seasons:
+        # Totals rather than per-90 averages, because a conversion ratio needs
+        # both halves on the same scale - and a 3000-minute season should weigh
+        # more in it than a 500-minute one, which averaging per-90 rates hides.
+        # Recency is kept by scaling the weights to sum to the number of seasons,
+        # so the volume stays right while the recent ones count for more.
         xw = [0.2, 0.3, 0.5][-len(xg_seasons):]
-        twx = sum(xw)
+        norm = [w * len(xw) / sum(xw) for w in xw]
 
-        def xper90(key, scale):
-            return scale * sum(
-                w * (float(s.get(key) or 0) / s["minutes"] * 90)
-                for s, w in zip(xg_seasons, xw)
-            ) / twx
+        def total(key):
+            return sum(
+                w * float(s.get(key) or 0) for s, w in zip(xg_seasons, norm)
+            )
 
+        minutes = sum(w * s["minutes"] for s, w in zip(xg_seasons, norm))
         pos = p["position"]
-        goals = (
-            XG_WEIGHT * xper90("expected_goals", XG_SCALE.get(pos, 1.0))
-            + (1 - XG_WEIGHT) * goals
+        goals = _shrunk_rate(
+            total("goals_scored"), total("expected_goals"), minutes,
+            XG_SCALE.get(pos, 1.0), GOAL_PRIOR_STRENGTH.get(pos),
         )
-        assists = (
-            XG_WEIGHT * xper90("expected_assists", XA_SCALE.get(pos, 1.0))
-            + (1 - XG_WEIGHT) * assists
+        assists = _shrunk_rate(
+            total("assists"), total("expected_assists"), minutes,
+            XA_SCALE.get(pos, 1.0), ASSIST_PRIOR_STRENGTH.get(pos),
         )
 
     return {
