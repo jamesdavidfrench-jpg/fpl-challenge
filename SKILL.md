@@ -242,6 +242,12 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   these projections top out around 72. Winning needs two hauls out of six
   players, and hauls come from concentrating risk rather than spreading it. The
   model has no ceiling term and does not know the difference.
+
+  This is not academic for James. His league has 8 entries and in GW1 all seven
+  of the others beat 48, in a week the game average was 34. Beating the average
+  is not the target; the target is roughly double it. The fix is a second squad
+  optimised for the chance of clearing a high score rather than for the average
+  one, printed alongside the current recommendation - not yet built.
 - **The squad returned is exactly optimal when the budget is unlimited**, which
   is every Challenge gameweek so far. If a gameweek ever sets a real budget, the
   solver prices cost into each player and tunes that price until the squad fits,
