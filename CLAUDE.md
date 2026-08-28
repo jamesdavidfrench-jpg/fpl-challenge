@@ -13,19 +13,26 @@ he already entered still stands. Do all of this without being asked for it.
 
 1. Read `data/tracking.json`. The highest-numbered entry is the squad he
    entered, not necessarily the solver's own answer.
-2. For each club he gave you, replace that club's eleven:
-   `python scripts/fpl_starters.py --set HUL --gkp "..." --def "..." --mid "..." --fwd "..."`
+2. For each club he gave you, replace that club's eleven, with --confirmed:
+   `python scripts/fpl_starters.py --set HUL --confirmed --gkp "..." --def "..." --mid "..." --fwd "..."`
    Pass only the positions he gave you. Names match without accents. It refuses
    an ambiguous or misspelled name rather than guessing - fix the name, do not
    work around it.
+
+   `--confirmed` is what makes team news worth having. It tells the projection
+   this is a published sheet, so named players get full minutes instead of a
+   share guessed from ownership, and anyone omitted is a substitute. Never pass
+   it for a line-up you inferred rather than read.
 3. Re-solve: `python scripts/fpl_solve.py`
 4. Say plainly whether his squad changed. If it did, name the swap and the
    points difference. If it did not, say so in one line and stop.
 5. If it changed: `python scripts/fpl_track.py record`
 6. Commit and push `data/starters.json` and `data/tracking.json`.
 
-He will usually only send the clubs that matter. Do not ask for the other
-eighteen.
+He will usually send both clubs in a fixture, not one. That is deliberate: if a
+club's sheet is badly changed the whole shape of the squad may want to move to
+the other side of that match, and judging it needs both elevens. Do not ask for
+the other eighteen.
 
 ## Things that will silently go wrong
 
