@@ -80,5 +80,88 @@
   "actual": 48,
   "average_entry_score": 34,
   "highest_score": 126
+ },
+ "2": {
+  "event": 2,
+  "event_name": "Gameweek 2",
+  "twist": "Welcome Back",
+  "recorded_at": "2026-08-28T11:44:11Z",
+  "projected": 54.61,
+  "captain_code": 169432,
+  "picks": [
+   {
+    "code": 473284,
+    "challenge_id": 571,
+    "name": "Tzolakis",
+    "team": "HUL",
+    "position": "GKP",
+    "projected": 7.31,
+    "multiplier": 2.0,
+    "low_confidence": true
+   },
+   {
+    "code": 108416,
+    "challenge_id": 277,
+    "name": "Egan",
+    "team": "HUL",
+    "position": "DEF",
+    "projected": 6.82,
+    "multiplier": 2.0,
+    "low_confidence": false
+   },
+   {
+    "code": 141746,
+    "challenge_id": 426,
+    "name": "B.Fernandes",
+    "team": "MUN",
+    "position": "MID",
+    "projected": 6.675,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 244851,
+    "challenge_id": 154,
+    "name": "Palmer",
+    "team": "CHE",
+    "position": "MID",
+    "projected": 6.665,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 169432,
+    "challenge_id": 295,
+    "name": "McBurnie",
+    "team": "HUL",
+    "position": "FWD",
+    "projected": 10.39,
+    "multiplier": 2.0,
+    "low_confidence": false
+   },
+   {
+    "code": 223094,
+    "challenge_id": 411,
+    "name": "Haaland",
+    "team": "MCI",
+    "position": "FWD",
+    "projected": 6.358,
+    "multiplier": 1.0,
+    "low_confidence": false
+   }
+  ],
+  "chosen_by": "James - Hull-focused stack, overriding the solver",
+  "projection_basis": "hand-adjusted: for Tzolakis, Egan and McBurnie the GW1 actual minutes replace the main-game ownership proxy, which understates promoted-club players. Other four picks are unadjusted solver numbers.",
+  "solver_projected_same_squad": 47.2,
+  "solver_own_pick": [
+   "McBurnie",
+   "Palmer",
+   "van Ewijk",
+   "Thomas",
+   "Tzolakis",
+   "B.Fernandes"
+  ],
+  "solver_own_projected": 50.85,
+  "deviation_reason": "solver optimises the average and picked both sides of COV v HUL, which cancels. This stacks one club for a higher ceiling, needed in an 8-entry league."
  }
 }
