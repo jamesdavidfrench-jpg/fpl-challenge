@@ -256,6 +256,32 @@ def main():
     for team, kind, p, detail in flags:
         by_kind.setdefault(kind, []).append((team, p, detail))
 
+    # The flags above describe a fresh draft. This one describes the file that
+    # is actually on disk, which is the thing the picker reads, and the two
+    # drift apart the moment somebody gets injured after an eleven was saved.
+    # It is a different kind of finding: not "here is a judgement worth
+    # checking" but "this file names someone who cannot play". He will never be
+    # picked - the solver drops anyone unavailable - but he holds a place, and
+    # a held place marks down whoever is actually filling it.
+    if os.path.exists(PATH):
+        with open(PATH, encoding="utf-8") as f:
+            saved = json.load(f)
+        byc = {q["code"]: q for q in data["players"]}
+        stale = []
+        for team, codes in (saved.get("expected_xi") or {}).items():
+            for c in codes:
+                q = byc.get(int(c))
+                if q and S._availability(q) == 0:
+                    stale.append((team, q, (q.get("news") or "no detail")[:48]))
+        if stale:
+            print(f"NAMED IN YOUR SAVED ELEVEN BUT CANNOT PLAY  ({len(stale)})")
+            for team, q, detail in sorted(stale, key=lambda x: x[0]):
+                print(f"  {team}  {S.POS_NAME[q['position']]} {q['name']:<14} "
+                      f"{q['cost']/10:>4.1f}m  {detail}")
+            print("  Fix these first - everything below is a judgement call, "
+                  "these are wrong.")
+            print()
+
     order = ["too close to call", "left out despite playing a lot",
              "picked but did not play last season", "injured, would otherwise start",
              "no Premier League record at all"]

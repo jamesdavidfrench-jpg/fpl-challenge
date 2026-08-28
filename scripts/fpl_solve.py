@@ -629,6 +629,42 @@ def _demote_squad_players(players, starters=None):
     for codes in ((starters or {}).get("expected_xi") or {}).values():
         xi.update(int(c) for c in codes)
     confirmed_teams = set((starters or {}).get("confirmed") or {})
+
+    # A named eleven holding someone who cannot play is really a named ten, and
+    # the club is starting somebody who was left out. So "not named" is weaker
+    # evidence at that club, in proportion to how many places are open.
+    #
+    # Nothing here decides who replaces whom - the file does not know that, and
+    # guessing it by hand is what this is meant to avoid. Each open place is
+    # shared among the players left out, weighted by how much each has played
+    # before, so a regular starter absorbs more of it than a fringe player. The
+    # cost of leaving it alone is that the actual replacement stays marked down
+    # to a substitute's minutes while an injured man holds his place.
+    fill = {}
+    open_keeper = set()
+    if xi:
+        by_club = {}
+        for p in players:
+            by_club.setdefault(p["team"], []).append(p)
+        for club, squad in by_club.items():
+            named = [q for q in squad if q["code"] in xi]
+            gap = sum(1 for q in named if (q.get("available") or 0) <= 0)
+            if not gap:
+                continue
+            if any(q["position"] == POS_ID["GKP"] and (q.get("available") or 0) <= 0
+                   for q in named):
+                open_keeper.add(club)
+            pool = [q for q in squad
+                    if q["code"] not in xi and (q.get("available") or 0) > 0
+                    and q["position"] != POS_ID["GKP"]]
+            w = {q["code"]: (q.get("history_minutes_share")
+                             or q.get("minutes_share") or 0.0) for q in pool}
+            total_w = sum(w.values())
+            if total_w <= 0:
+                continue
+            for q in pool:
+                fill[q["code"]] = min(1.0, gap * w[q["code"]] / total_w)
+
     if xi:
         for p in players:
             if p["code"] in xi:
@@ -647,6 +683,11 @@ def _demote_squad_players(players, starters=None):
             # plays, so a keeper the eleven leaves out is the reserve and that
             # is the end of it. Ownership adds nothing to a binary fact.
             if p["position"] == POS_ID["GKP"]:
+                # Exactly one keeper plays, so a keeper left out is the reserve
+                # - unless the named one cannot play, in which case the reserve
+                # is the keeper and cutting him is the error.
+                if p["team"] in open_keeper:
+                    continue
                 p["expected"] = round(p["expected"] * 0.12, 3)
                 p["not_expected_to_start"] = True
                 p["backup_keeper"] = True
@@ -658,6 +699,14 @@ def _demote_squad_players(players, starters=None):
             # unnamed player rather than cutting everyone by the same 0.30.
             hist = p.get("history_minutes_share") or p.get("minutes_share") or 0.0
             target = min(hist, start_share(p.get("owned"), False))
+            q = fill.get(p["code"], 0.0)
+            if q > 0:
+                # Blend towards a starter's minutes by however much of an open
+                # place this player is carrying.
+                target = (1 - q) * target + q * max(
+                    hist, start_share(p.get("owned"), True)
+                )
+                p["fills_open_slot"] = round(q, 3)
             factor = target / hist if hist > 0 else 0.30
             p["expected"] = round(p["expected"] * factor, 3)
             p["minutes_share"] = round(target, 3)
