@@ -1180,8 +1180,12 @@ def main():
         return
 
     print(f"{ev['name']} - {twist_name}")
+    # Built outside the f-string: nesting the same quote inside one needs
+    # Python 3.12, and this has to run on whatever is on the desktop.
+    budget = ("no budget limit" if con["budget"] >= 9999
+              else f"budget {con['budget'] / 10:.1f}m")
     print(f"Rules: {con['size']} players, "
-          f"{'no budget limit' if con['budget'] >= 9999 else f'budget {con['budget']/10:.1f}m'}, "
+          f"{budget}, "
           f"max {con['club_limit']} per club, "
           f"positions " + ", ".join(
               f"{POS_NAME[q]} {a}-{b}" for q, (a, b) in sorted(con["positions"].items())))
