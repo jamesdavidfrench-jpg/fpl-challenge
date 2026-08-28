@@ -132,8 +132,14 @@ def _plain(s):
     ).strip()
 
 
-def set_xi(data, team, groups):
-    """Replace one club's picks for the positions given. Other positions stand."""
+def set_xi(data, team, groups, confirmed=False):
+    """Replace one club's picks for the positions given. Other positions stand.
+
+    confirmed marks this as a published team sheet rather than a guess, which
+    the projection treats differently: named players get full minutes instead
+    of a share inferred from ownership, and anyone left out is a substitute as
+    a matter of fact rather than as weak evidence.
+    """
     path = PATH
     with open(path, encoding="utf-8") as f:
         st = json.load(f)
@@ -173,9 +179,16 @@ def set_xi(data, team, groups):
         for p in sorted(current, key=lambda x: x["position"])
     ]
     st.setdefault("human_edits", {})[team] = time.strftime("%Y-%m-%d")
+    if confirmed:
+        st.setdefault("confirmed", {})[team] = time.strftime("%Y-%m-%d")
+    else:
+        # A club re-drafted from guesswork is no longer confirmed, and leaving a
+        # stale marker would tell the projection to trust a guess completely.
+        (st.get("confirmed") or {}).pop(team, None)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(st, f, indent=1, ensure_ascii=False)
-    print(f"  {team} now has {len(current)} players.")
+    print(f"  {team} now has {len(current)} players"
+          + (" (confirmed team sheet)." if confirmed else "."))
 
 
 def main():
@@ -186,6 +199,10 @@ def main():
                     help="correct one club, e.g. --set LEE --def 'Bogle,Rodon'")
     for pos in ("gkp", "def", "mid", "fwd"):
         ap.add_argument(f"--{pos}", help=f"comma-separated {pos.upper()} starters")
+    ap.add_argument("--confirmed", action="store_true",
+                    help="this is published team news, not a guess: named "
+                         "players get full minutes and anyone omitted is a "
+                         "substitute")
     args = ap.parse_args()
 
     data = S.load()
@@ -198,7 +215,7 @@ def main():
                 groups[pos] = [n.strip() for n in val.split(",") if n.strip()]
         if not groups:
             sys.exit("--set needs at least one of --gkp/--def/--mid/--fwd")
-        set_xi(data, args.set.upper(), groups)
+        set_xi(data, args.set.upper(), groups, confirmed=args.confirmed)
         return
 
     xi, readable, flags = draft(data)

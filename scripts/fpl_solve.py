@@ -465,6 +465,7 @@ def project(data, scoring, starters=None):
     xi = set()
     for codes in ((starters or {}).get("expected_xi") or {}).values():
         xi.update(int(c) for c in codes)
+    confirmed_teams = set((starters or {}).get("confirmed") or {})
 
     fixtures = data["fixtures"]
     by_team = {}
@@ -510,9 +511,17 @@ def project(data, scoring, starters=None):
         confirmed_starter = p["code"] in xi
         if confirmed_starter:
             rates = dict(rates)
-            rates["minutes_share"] = max(
-                history_share, start_share(p.get("owned"), True)
-            )
+            if p["team"] in confirmed_teams:
+                # Team news, not a draft. Ownership is only ever a proxy for
+                # whether the market expects a start, and a published sheet
+                # answers that outright, so the proxy has nothing left to add.
+                # This is the whole value of asking for line-ups: it is the one
+                # input that removes a guess rather than sharpening it.
+                rates["minutes_share"] = STARTER_MINUTES_SHARE
+            else:
+                rates["minutes_share"] = max(
+                    history_share, start_share(p.get("owned"), True)
+                )
 
         games = by_team.get(p["team_id"], [])
         total, notes = 0.0, []
@@ -558,6 +567,7 @@ def project(data, scoring, starters=None):
                 "backup_keeper": False,
                 "depth_rank": None,
                 "confirmed_starter": confirmed_starter,
+                "from_team_sheet": p["team"] in confirmed_teams,
                 "minutes_share": round(rates["minutes_share"], 3),
                 "history_minutes_share": round(history_share, 3),
             }
@@ -618,9 +628,20 @@ def _demote_squad_players(players, starters=None):
     xi = set()
     for codes in ((starters or {}).get("expected_xi") or {}).values():
         xi.update(int(c) for c in codes)
+    confirmed_teams = set((starters or {}).get("confirmed") or {})
     if xi:
         for p in players:
             if p["code"] in xi:
+                continue
+            # Left out of a published team sheet is a fact, not the weak
+            # evidence the rest of this function is written to hedge. All the
+            # care below exists because a drafted eleven can simply have missed
+            # someone; a confirmed one cannot. He is a substitute, so leave him
+            # the few minutes a substitute plays and stop reasoning about it.
+            if p["team"] in confirmed_teams:
+                p["expected"] = round(p["expected"] * 0.08, 3)
+                p["minutes_share"] = 0.08
+                p["not_expected_to_start"] = True
                 continue
             # Keepers stay a flat cut, because they are structural: exactly one
             # plays, so a keeper the eleven leaves out is the reserve and that
@@ -1004,7 +1025,8 @@ def reason(p, con, twist_name):
     # that did not start was named in the expected eleven and owned by under 3%
     # of managers. The projection already damps these; this is so the damping is
     # not the only thing standing between a hand-drafted guess and the team.
-    if p.get("confirmed_starter") and (p.get("owned") or 0.0) < XI_OWNERSHIP_WARN:
+    if (p.get("confirmed_starter") and not p.get("from_team_sheet")
+            and (p.get("owned") or 0.0) < XI_OWNERSHIP_WARN):
         bits.append(f"only {p.get('owned') or 0:.1f}% owned - the market does "
                     f"not expect him to start, check this one")
     if p.get("backup_keeper"):
