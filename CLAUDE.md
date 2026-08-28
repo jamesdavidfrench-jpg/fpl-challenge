@@ -23,11 +23,24 @@ he already entered still stands. Do all of this without being asked for it.
    this is a published sheet, so named players get full minutes instead of a
    share guessed from ownership, and anyone omitted is a substitute. Never pass
    it for a line-up you inferred rather than read.
-3. Re-solve: `python scripts/fpl_solve.py`
-4. Say plainly whether his squad changed. If it did, name the swap and the
-   points difference. If it did not, say so in one line and stop.
+3. Re-solve: `python scripts/fpl_solve.py`. This always solves the whole squad
+   from scratch - there is no incremental mode, and you should not build one.
+   Do not reason about who replaces whom. Ask what the best six are now.
+4. Report the full six either way, then say what changed against the recorded
+   squad and by how many points. If nothing changed, still list the six, in one
+   short block.
+
+   The answer is often not a substitution. A squad built as a stack - three
+   players from one club, chosen because their good weeks arrive together - can
+   stop making sense entirely when that club's sheet changes, and the right
+   response is to move the whole shape to another club, captain included. A
+   replacement-shaped answer cannot find that, and will hand him a patched
+   squad whose reason for existing has gone.
 5. If it changed: `python scripts/fpl_track.py record`
-6. Commit and push `data/starters.json` and `data/tracking.json`.
+6. Commit and push `data/starters.json` and `data/tracking.json`. If you
+   changed neither - a hypothetical line-up, or a sheet that changed nothing -
+   say so explicitly, so an empty push is a stated outcome rather than a step
+   that looks like it was skipped.
 
 He will usually send both clubs in a fixture, not one. That is deliberate: if a
 club's sheet is badly changed the whole shape of the squad may want to move to
