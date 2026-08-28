@@ -150,6 +150,12 @@ def set_xi(data, team, groups, confirmed=False):
 
     current = [byc[c] for c in st["expected_xi"].get(team, [])]
 
+    # Resolve every name before changing or printing anything. The file is only
+    # written after the loop, so a bad name in the last position used to make
+    # the whole call a no-op - while the positions before it had already printed
+    # as though they had been applied. A re-solve then ran on the old eleven and
+    # looked entirely normal, which is the worst way for this to fail.
+    plan = {}
     for pos_name, names in groups.items():
         pos = S.POS_ID[pos_name]
         resolved = []
@@ -158,14 +164,21 @@ def set_xi(data, team, groups, confirmed=False):
             if not hits:
                 hits = [p for p in squad if _plain(want) in _plain(p["name"])]
             if not hits:
-                sys.exit(f"Could not find '{want}' at {team}")
+                sys.exit(f"Could not find '{want}' at {team}. Nothing was changed.")
             if len(hits) > 1:
                 sys.exit(f"'{want}' is ambiguous at {team}: "
-                         + ", ".join(h["name"] for h in hits))
+                         + ", ".join(h["name"] for h in hits)
+                         + ". Nothing was changed.")
             p = hits[0]
             if p["position"] != pos:
-                sys.exit(f"{p['name']} is a {S.POS_NAME[p['position']]}, not {pos_name}")
+                sys.exit(f"{p['name']} is a {S.POS_NAME[p['position']]}, not "
+                         f"{pos_name}. Nothing was changed.")
             resolved.append(p)
+        plan[pos_name] = resolved
+
+    for pos_name, resolved in plan.items():
+        pos = S.POS_ID[pos_name]
+        for p in resolved:
             if S._availability(p) == 0:
                 print(f"  note: {p['name']} is unavailable "
                       f"({(p.get('news') or 'no detail')[:44]}) - kept in the list, "
