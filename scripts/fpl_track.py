@@ -33,6 +33,84 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(HERE, "data")
 LOG = os.path.join(DATA, "tracking.json")
 
+# James's league. Two competitions run off the same weekly score, and they
+# reward different things:
+#
+#   the points table  - cumulative total, so the average is the right target
+#   the league table  - 3 points for finishing first that week, 2 for second,
+#                       1 for third, and nothing for the rest
+#
+# The league table is the one that matters to him, and it is decided by eight
+# specific people rather than by the field. Comparing against the game-wide
+# average answered the wrong question and answered it flatteringly: GW1 was
+# recorded as +14 and a win, in a week he finished eighth of nine and scored no
+# league points at all.
+LEAGUE_ID = 818
+ENTRY_ID = 82078  # "Claude FC"
+LEAGUE_POINTS = {1: 3, 2: 2, 3: 1}
+
+
+def _league_standings(event_id):
+    """Every entry's score for one specific gameweek, best first.
+
+    The standings endpoint carries `event_total`, which is tempting and wrong:
+    it means the gameweek in progress, so it reads 0 for everyone until the
+    current week scores, and using it ranked a last-placed entry first. Each
+    entry's own history carries the per-gameweek points, so the score for a
+    given week is taken from there.
+    """
+    data = fpl_data.fetch(
+        f"{fpl_data.CHALLENGE}/leagues-classic/{LEAGUE_ID}/standings/",
+        f"league_{LEAGUE_ID}_standings.json",
+        900,
+    )
+    rows = []
+    for r in data["standings"]["results"]:
+        try:
+            hist = fpl_data.fetch(
+                f"{fpl_data.CHALLENGE}/entry/{r['entry']}/history/",
+                f"entry_{r['entry']}_history_gw{event_id}.json",
+                0,
+            )
+        except Exception:
+            continue
+        wk = next((c for c in hist.get("current") or []
+                   if c.get("event") == event_id), None)
+        if wk is None:
+            continue
+        rows.append({**r, "week_points": wk.get("points") or 0})
+    return data["league"]["name"], rows
+
+
+def _rival_squads(event_id, entries):
+    """What each entry actually picked, once the gameweek has locked.
+
+    Before the deadline this endpoint answers with the shape of a squad and
+    every element id zeroed, so it can only ever be read backwards. That is the
+    whole reason this is collected week by week: the ownership figure the
+    picker needs - how many of these eight own a player - has no live source,
+    and the only way to it is a record of what this field has done before.
+    """
+    out = {}
+    for e in entries:
+        try:
+            d = fpl_data.fetch(
+                f"{fpl_data.CHALLENGE}/entry/{e['entry']}/event/{event_id}/picks/",
+                f"picks_{e['entry']}_{event_id}.json",
+                0,
+            )
+        except Exception:
+            continue  # an entry that skipped the week has no picks at all
+        picks = d.get("picks") or []
+        if any(x.get("element") for x in picks):
+            out[str(e["entry"])] = {
+                "player_name": e.get("player_name"),
+                "picks": [x["element"] for x in picks],
+                "captain": next((x["element"] for x in picks
+                                 if x.get("is_captain")), None),
+            }
+    return out
+
 
 def _load_log():
     if os.path.exists(LOG):
@@ -102,6 +180,12 @@ def record():
           f"{len(picks)} players, {score:.1f} projected.")
 
 
+def _ordinal(n):
+    if 10 <= n % 100 <= 20:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+
 def score():
     """Score every recorded week whose gameweek has finished."""
     log = _load_log()
@@ -145,9 +229,50 @@ def score():
         entry["actual"] = raw
         entry["average_entry_score"] = ev.get("average_entry_score")
         entry["highest_score"] = ev.get("highest_score")
+
+        # Where he finished among the people he is actually playing against.
+        # Scores come from the league table rather than being recomputed, so a
+        # bug in the picks above cannot quietly move his position too.
+        try:
+            name, results = _league_standings(entry["event"])
+            week = sorted(
+                ((r["week_points"], r) for r in results),
+                key=lambda t: -t[0],
+            )
+            scores = [t[0] for t in week]
+            # His position follows the team he entered, which is not always the
+            # team recommended here - he overrides it, and should. Taking the
+            # score from the league table keeps the two apart: "actual" is what
+            # the recommendation would have scored, "entered" is what he did.
+            mine = next((r for r in results
+                         if r.get("entry") == ENTRY_ID), None)
+            entered = mine["week_points"] if mine else raw
+            entry["entered"] = entered
+            # Rank by how many scored strictly more, so ties share a place -
+            # two on 63 are both fifth, and the next entry is seventh.
+            pos = sum(1 for sc in scores if sc > entered) + 1
+            entry["league_name"] = name
+            entry["league_size"] = len(results)
+            entry["league_position"] = pos
+            entry["league_points"] = LEAGUE_POINTS.get(pos, 0)
+            entry["league_scores"] = [
+                {"player_name": r.get("player_name"), "score": sc}
+                for sc, r in week
+            ]
+            entry["league_winner"] = week[0][0] if week else None
+            entry["league_third"] = scores[2] if len(scores) > 2 else None
+            entry["rival_squads"] = _rival_squads(entry["event"], results)
+        except Exception as e:
+            print(f"  warn: league {LEAGUE_ID} unavailable ({e})", file=sys.stderr)
+
         log[key] = entry
+        lp = entry.get("league_points")
+        where = (f", {_ordinal(entry['league_position'])} of "
+                 f"{entry['league_size']} in the league for {lp} league "
+                 f"point{'' if lp == 1 else 's'}"
+                 if entry.get("league_position") else "")
         print(f"Scored {entry['event_name']}: {raw} pts "
-              f"(average entry {ev.get('average_entry_score')})")
+              f"(average entry {ev.get('average_entry_score')}){where}")
 
     _save_log(log)
 
@@ -159,22 +284,57 @@ def report():
         print("No finished gameweeks scored yet. Run 'score' after a gameweek ends.")
         return
 
-    print(f"{'GW':>3}  {'Challenge':<18} {'Proj':>6} {'Actual':>7} {'Avg':>6} {'vs Avg':>7}")
-    beat = 0
-    for e in sorted(done, key=lambda x: x["event"]):
-        avg = e.get("average_entry_score") or 0
-        delta = e["actual"] - avg
-        if delta > 0:
-            beat += 1
+    done.sort(key=lambda x: x["event"])
+    scored = [e for e in done if e.get("league_position")]
+
+    # The league table first, because it is the one that decides the season.
+    # The game-wide average is kept, but demoted to what it is: a sanity check
+    # that the picker is not simply bad, not a measure of whether he is winning.
+    print(f"{'GW':>3}  {'Challenge':<18} {'Proj':>6} {'Score':>6} "
+          f"{'Pos':>6} {'Pts':>4} {'3rd':>5} {'Gap':>6} {'Avg':>5}")
+    for e in done:
+        pos = e.get("league_position")
+        size = e.get("league_size")
+        third = e.get("league_third")
+        gap = (e.get("entered", e["actual"]) - third) if third is not None else None
         print(f"{e['event']:>3}  {str(e.get('twist') or '-'):<18} "
-              f"{e['projected']:>6.1f} {e['actual']:>7} {avg:>6} {delta:>+7}")
+              f"{e['projected']:>6.1f} {e.get('entered', e['actual']):>6} "
+              f"{(f'{pos}/{size}' if pos else '-'):>6} "
+              f"{(e.get('league_points') if pos else '-'):>4} "
+              f"{(third if third is not None else '-'):>5} "
+              f"{(f'{gap:+d}' if gap is not None else '-'):>6} "
+              f"{e.get('average_entry_score') or 0:>5}")
 
     n = len(done)
     print()
-    print(f"Beat the average in {beat} of {n} gameweeks.")
+    if scored:
+        total = sum(e.get("league_points") or 0 for e in scored)
+        placed = sum(1 for e in scored if (e.get("league_points") or 0) > 0)
+        best = min(e["league_position"] for e in scored)
+        print(f"League table: {total} point{'' if total == 1 else 's'} from "
+              f"{len(scored)} gameweek{'' if len(scored) == 1 else 's'}, "
+              f"finishing in the points {placed} time"
+              f"{'' if placed == 1 else 's'}. Best finish {_ordinal(best)}.")
+        gaps = [e.get("entered", e["actual"]) - e["league_third"] for e in scored
+                if e.get("league_third") is not None]
+        if gaps:
+            short = [g for g in gaps if g < 0]
+            if short:
+                print(f"Missed third place by {abs(sum(short) / len(short)):.0f} "
+                      f"points on average, across {len(short)} of {len(gaps)} "
+                      f"gameweeks. That is the number to close.")
+            else:
+                print("Has not finished outside the points yet.")
+    else:
+        print("No league positions recorded yet - run 'score' to fetch them.")
+
+    beat = sum(1 for e in done
+               if e["actual"] > (e.get("average_entry_score") or 0))
     avg_err = sum(abs(e["projected"] - e["actual"]) for e in done) / n
-    print(f"Mean projection error: {avg_err:.1f} pts per gameweek.")
-    print("A single week's error means little - watch the vs-Avg column over time.")
+    print(f"Points table: beat the game-wide average in {beat} of {n}. "
+          f"Mean projection error {avg_err:.1f} pts.")
+    print("Beating that average is not the target - it is only a check that "
+          "the picker works. The league table is decided by eight other people.")
 
 
 if __name__ == "__main__":

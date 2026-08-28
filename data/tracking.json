@@ -77,9 +77,164 @@
   "original_projected": 49.4,
   "model_note": "Reprojected 2026-08-23 after two solver fixes: confirmed starters get a starter's minutes share, and the no-PL-history prior takes an ownership uplift. Original projection under the pre-fix model was 49.4. Watkins (AVL, not doubled) swapped for Gonzalo (FUL, doubled) before the 13:00Z lock; the other five unchanged.",
   "revised_at": "2026-08-23T08:28:00Z",
-  "actual": 48,
   "average_entry_score": 34,
-  "highest_score": 126
+  "highest_score": 126,
+  "entered": 48,
+  "league_name": "Challenge Cup",
+  "league_size": 9,
+  "league_position": 8,
+  "league_points": 0,
+  "league_scores": [
+   {
+    "player_name": "Billy Boland",
+    "score": 78
+   },
+   {
+    "player_name": "George Lancaster",
+    "score": 74
+   },
+   {
+    "player_name": "Scott Feather",
+    "score": 70
+   },
+   {
+    "player_name": "Ian Bullock",
+    "score": 68
+   },
+   {
+    "player_name": "Robin Ackroyd",
+    "score": 63
+   },
+   {
+    "player_name": "Josh Toulmin",
+    "score": 63
+   },
+   {
+    "player_name": "Jimmy Walker",
+    "score": 60
+   },
+   {
+    "player_name": "James French",
+    "score": 48
+   },
+   {
+    "player_name": "James Hirst",
+    "score": 44
+   }
+  ],
+  "league_winner": 78,
+  "league_third": 70,
+  "rival_squads": {
+   "204181": {
+    "player_name": "Billy Boland",
+    "picks": [
+     385,
+     502,
+     362,
+     40,
+     554,
+     561
+    ],
+    "captain": 561
+   },
+   "175549": {
+    "player_name": "George Lancaster",
+    "picks": [
+     385,
+     504,
+     387,
+     554,
+     40,
+     379
+    ],
+    "captain": 554
+   },
+   "7232": {
+    "player_name": "Scott Feather",
+    "picks": [
+     567,
+     504,
+     334,
+     554,
+     40,
+     411
+    ],
+    "captain": 554
+   },
+   "16955": {
+    "player_name": "Ian Bullock",
+    "picks": [
+     571,
+     504,
+     260,
+     591,
+     411,
+     561
+    ],
+    "captain": 260
+   },
+   "75259": {
+    "player_name": "Robin Ackroyd",
+    "picks": [
+     412,
+     334,
+     504,
+     554,
+     411,
+     561
+    ],
+    "captain": 554
+   },
+   "75801": {
+    "player_name": "Josh Toulmin",
+    "picks": [
+     529,
+     334,
+     40,
+     455,
+     554,
+     411
+    ],
+    "captain": 40
+   },
+   "82187": {
+    "player_name": "Jimmy Walker",
+    "picks": [
+     385,
+     502,
+     40,
+     554,
+     43,
+     411
+    ],
+    "captain": 411
+   },
+   "82078": {
+    "player_name": "James French",
+    "picks": [
+     567,
+     200,
+     426,
+     481,
+     525,
+     561
+    ],
+    "captain": 200
+   },
+   "337035": {
+    "player_name": "James Hirst",
+    "picks": [
+     597,
+     112,
+     541,
+     40,
+     260,
+     411
+    ],
+    "captain": 40
+   }
+  },
+  "actual": 48
  },
  "2": {
   "event": 2,
