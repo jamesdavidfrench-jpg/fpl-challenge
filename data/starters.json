@@ -82,14 +82,14 @@
   ],
   "COV": [
    472739,
-   220583,
    451284,
    461102,
    173878,
-   196100,
+   539142,
+   428580,
+   168144,
    469272,
-   241293,
-   226965,
+   661888,
    230730,
    218997
   ],
@@ -135,27 +135,28 @@
   "HUL": [
    473284,
    108416,
-   146426,
-   160817,
    232351,
-   462635,
+   193278,
+   606930,
+   146426,
+   243413,
+   101282,
    540324,
-   232905,
-   445028,
+   608227,
    169432
   ],
   "IPS": [
    240514,
    216616,
-   219924,
    449429,
+   219924,
    455084,
-   216055,
    212314,
-   443261,
+   501390,
+   442967,
+   474120,
    531442,
-   543968,
-   222625
+   543968
   ],
   "LEE": [
    432720,
@@ -342,17 +343,17 @@
    "FWD Welbeck (6.0m, 2.3%)"
   ],
   "COV": [
-   "GKP Rushworth (4.5m, 0.9%)",
-   "DEF Woolfenden (4.0m, 0.2%)",
-   "DEF van Ewijk (4.0m, 14.8%)",
-   "DEF Thomas (4.0m, 7.9%)",
-   "DEF Dasilva (4.0m, 0.8%)",
-   "MID Hamer (5.5m, 0.1%)",
-   "MID Tchaouna (5.5m, 0.1%)",
-   "MID Mason-Clark (5.5m, 0.2%)",
-   "MID Torp (5.5m, 0.2%)",
-   "FWD Thomas-Asante (5.0m, 0.8%)",
-   "FWD Simms (5.0m, 0.8%)"
+   "GKP Rushworth (4.5m)",
+   "DEF van Ewijk (4.0m)",
+   "DEF Thomas (4.0m)",
+   "DEF Dasilva (4.0m)",
+   "DEF Amenda (4.0m)",
+   "MID Onyeka (5.0m)",
+   "MID Grimes (5.0m)",
+   "MID Tchaouna (5.5m)",
+   "MID Yirenkyi (5.0m)",
+   "FWD Thomas-Asante (5.0m)",
+   "FWD Simms (5.0m)"
   ],
   "CRY": [
    "GKP Henderson (5.0m, 3.2%)",
@@ -394,29 +395,30 @@
    "FWD Gonzalo (6.0m, 1.9%)"
   ],
   "HUL": [
-   "GKP Tzolakis (4.5m, 0.4%)",
-   "DEF Egan (4.0m, 1.9%)",
-   "DEF Ajayi (4.0m, 0.9%)",
-   "DEF McNair (4.0m, 0.1%)",
-   "DEF Giles (4.0m, 0.8%)",
-   "MID Gelhardt (5.0m, 0.0%)",
-   "MID Belloumi (5.0m, 0.5%)",
-   "MID Millar (5.0m, 0.1%)",
-   "MID Morita (5.0m, 0.1%)",
-   "FWD McBurnie (5.5m, 1.4%)"
+   "GKP Tzolakis (4.5m)",
+   "DEF Egan (4.0m)",
+   "DEF Giles (4.0m)",
+   "DEF Coyle (4.0m)",
+   "DEF Mendy (4.0m)",
+   "DEF Ajayi (4.0m)",
+   "MID Slater (4.5m)",
+   "MID Crooks (4.5m)",
+   "MID Belloumi (5.0m)",
+   "MID Stroud (5.0m)",
+   "FWD McBurnie (5.5m)"
   ],
   "IPS": [
-   "GKP Walton (4.5m, 0.6%)",
-   "DEF O'Shea (4.0m, 2.9%)",
-   "DEF Diop (4.0m, 18.1%)",
-   "DEF Greaves (4.0m, 0.8%)",
-   "DEF Davis (4.0m, 5.2%)",
-   "MID Florentino (5.0m, 0.1%)",
-   "MID Lukić (5.0m, 0.1%)",
-   "MID Clarke (5.5m, 0.3%)",
-   "MID Fatawu (5.5m, 0.3%)",
-   "FWD Emersonn (5.5m, 0.4%)",
-   "FWD Hirst (5.0m, 0.4%)"
+   "GKP Scherpen (4.5m)",
+   "DEF O'Shea (4.0m)",
+   "DEF Greaves (4.0m)",
+   "DEF Diop (4.0m)",
+   "DEF Davis (4.0m)",
+   "MID Lukić (5.0m)",
+   "MID Núñez (5.0m)",
+   "MID Maeda (5.5m)",
+   "MID Enciso (5.5m)",
+   "MID Fatawu (5.5m)",
+   "FWD Emersonn (5.5m)"
   ],
   "LEE": [
    "GKP Trafford (5.0m)",
@@ -535,6 +537,9 @@
   "LIV": "2026-08-17",
   "MCI": "2026-08-17",
   "ARS": "2026-08-21",
-  "AVL": "2026-08-21"
+  "AVL": "2026-08-21",
+  "HUL": "2026-08-28",
+  "COV": "2026-08-28",
+  "IPS": "2026-08-28"
  }
 }
