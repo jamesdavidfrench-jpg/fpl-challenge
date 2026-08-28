@@ -1027,7 +1027,7 @@ def reason(p, con, twist_name):
     # not the only thing standing between a hand-drafted guess and the team.
     if (p.get("confirmed_starter") and not p.get("from_team_sheet")
             and (p.get("owned") or 0.0) < XI_OWNERSHIP_WARN):
-        bits.append(f"only {p.get('owned') or 0:.1f}% owned - the market does "
+        bits.append(f"only {p.get('owned') or 0:.1f}% owned in main FPL - the market does "
                     f"not expect him to start, check this one")
     if p.get("backup_keeper"):
         bits.append("likely backup keeper")
@@ -1198,7 +1198,13 @@ def main():
             # Ownership is shown on every pick because it is the quickest way to
             # spot a player the model thinks will start and the market does not.
             own = p.get("owned")
-            own_s = f", {own:.1f}% owned" if own is not None else ""
+            # Labelled with the game it comes from. Challenge reports 0.0%
+            # for every player, so this is main-game ownership, and reading it
+            # as "how many rivals own him" is wrong in the one week it matters
+            # most - a twist that herds the whole Challenge field into three
+            # clubs leaves main-game ownership describing something else
+            # entirely.
+            own_s = f", {own:.1f}% owned in main FPL" if own is not None else ""
             print(f"  {POS_NAME[p['position']]} {p['name']}{c} ({p['team']}, "
                   f"{p['cost']/10:.1f}m{own_s})")
             print(f"      {reason(p, con, twist_name)}")
