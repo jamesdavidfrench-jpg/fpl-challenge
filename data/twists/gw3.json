@@ -1,0 +1,9 @@
+{
+  "event": 3,
+  "name": "All Out Attack",
+  "description": "Goals and assists are worth double points. One player per club, six players, unlimited budget.",
+  "player_multipliers": [],
+  "scoring_multipliers": {"goals_scored": 2, "assists": 2},
+  "source": "https://fplchallenge.premierleague.com/ home page, read 2026-09-02: \"Gameweek 3 Challenge - All Out Attack - Goals and assists are worth double points. One player per club.\" Same wording in https://www.premierleague.com/en/news/4683622/fpl-challenge-is-live-for-202627-see-the-first-five-challenges, which however omits the one-per-club limit. The API confirms it: event 3 overrides.rules.squad_team_limit = 1.",
+  "verified_on": "2026-09-02"
+}

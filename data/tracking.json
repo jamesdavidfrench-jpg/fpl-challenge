@@ -252,7 +252,8 @@
     "position": "GKP",
     "projected": 7.31,
     "multiplier": 2.0,
-    "low_confidence": true
+    "low_confidence": true,
+    "actual": 20
    },
    {
     "code": 108416,
@@ -262,7 +263,8 @@
     "position": "DEF",
     "projected": 6.82,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 18
    },
    {
     "code": 141746,
@@ -272,7 +274,8 @@
     "position": "MID",
     "projected": 6.675,
     "multiplier": 1.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 23
    },
    {
     "code": 244851,
@@ -282,7 +285,8 @@
     "position": "MID",
     "projected": 6.665,
     "multiplier": 1.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 7
    },
    {
     "code": 169432,
@@ -292,7 +296,8 @@
     "position": "FWD",
     "projected": 10.39,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 2
    },
    {
     "code": 223094,
@@ -302,7 +307,8 @@
     "position": "FWD",
     "projected": 6.358,
     "multiplier": 1.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 13
    }
   ],
   "chosen_by": "James - Hull-focused stack, overriding the solver",
@@ -317,6 +323,234 @@
    "B.Fernandes"
   ],
   "solver_own_projected": 50.85,
-  "deviation_reason": "solver optimises the average and picked both sides of COV v HUL, which cancels. This stacks one club for a higher ceiling, needed in an 8-entry league."
+  "deviation_reason": "solver optimises the average and picked both sides of COV v HUL, which cancels. This stacks one club for a higher ceiling, needed in an 8-entry league.",
+  "actual": 85,
+  "average_entry_score": 49,
+  "highest_score": 125,
+  "entered": 85,
+  "league_name": "Challenge Cup",
+  "league_size": 9,
+  "league_position": 2,
+  "league_points": 2,
+  "league_scores": [
+   {
+    "player_name": "Jimmy Walker",
+    "score": 90
+   },
+   {
+    "player_name": "James French",
+    "score": 85
+   },
+   {
+    "player_name": "Scott Feather",
+    "score": 67
+   },
+   {
+    "player_name": "Robin Ackroyd",
+    "score": 62
+   },
+   {
+    "player_name": "Josh Toulmin",
+    "score": 62
+   },
+   {
+    "player_name": "James Hirst",
+    "score": 57
+   },
+   {
+    "player_name": "George Lancaster",
+    "score": 53
+   },
+   {
+    "player_name": "Ian Bullock",
+    "score": 32
+   },
+   {
+    "player_name": "Billy Boland",
+    "score": 27
+   }
+  ],
+  "league_winner": 90,
+  "league_third": 67,
+  "rival_squads": {
+   "82187": {
+    "player_name": "Jimmy Walker",
+    "picks": [
+     571,
+     175,
+     173,
+     182,
+     426,
+     165
+    ],
+    "captain": 173
+   },
+   "7232": {
+    "player_name": "Scott Feather",
+    "picks": [
+     110,
+     173,
+     12,
+     154,
+     411,
+     165
+    ],
+    "captain": 154
+   },
+   "82078": {
+    "player_name": "James French",
+    "picks": [
+     571,
+     277,
+     426,
+     154,
+     295,
+     411
+    ],
+    "captain": 295
+   },
+   "175549": {
+    "player_name": "George Lancaster",
+    "picks": [
+     571,
+     356,
+     591,
+     190,
+     295,
+     165
+    ],
+    "captain": 165
+   },
+   "75259": {
+    "player_name": "Robin Ackroyd",
+    "picks": [
+     412,
+     173,
+     175,
+     426,
+     165,
+     492
+    ],
+    "captain": 492
+   },
+   "75801": {
+    "player_name": "Josh Toulmin",
+    "picks": [
+     110,
+     327,
+     286,
+     591,
+     165,
+     411
+    ],
+    "captain": 411
+   },
+   "204181": {
+    "player_name": "Billy Boland",
+    "picks": [
+     567,
+     305,
+     397,
+     295,
+     195,
+     316
+    ],
+    "captain": 295
+   },
+   "337035": {
+    "player_name": "James Hirst",
+    "picks": [
+     350,
+     387,
+     357,
+     397,
+     426,
+     411
+    ],
+    "captain": 411
+   },
+   "16955": {
+    "player_name": "Ian Bullock",
+    "picks": [
+     110,
+     175,
+     591,
+     566,
+     492,
+     316
+    ],
+    "captain": 492
+   }
+  }
+ },
+ "3": {
+  "event": 3,
+  "event_name": "Gameweek 3",
+  "twist": "All Out Attack",
+  "recorded_at": "2026-09-02T10:43:13Z",
+  "projected": 65.02,
+  "captain_code": 223094,
+  "picks": [
+   {
+    "code": 223094,
+    "challenge_id": 411,
+    "name": "Haaland",
+    "team": "MCI",
+    "position": "FWD",
+    "projected": 11.628,
+    "multiplier": 1.64,
+    "low_confidence": false
+   },
+   {
+    "code": 223340,
+    "challenge_id": 12,
+    "name": "Saka",
+    "team": "ARS",
+    "position": "MID",
+    "projected": 9.154,
+    "multiplier": 1.64,
+    "low_confidence": false
+   },
+   {
+    "code": 489639,
+    "challenge_id": 109,
+    "name": "Verbruggen",
+    "team": "BHA",
+    "position": "GKP",
+    "projected": 5.858,
+    "multiplier": 1.64,
+    "low_confidence": false
+   },
+   {
+    "code": 219168,
+    "challenge_id": 379,
+    "name": "Isak",
+    "team": "LIV",
+    "position": "FWD",
+    "projected": 9.619,
+    "multiplier": 1.64,
+    "low_confidence": false
+   },
+   {
+    "code": 141746,
+    "challenge_id": 426,
+    "name": "B.Fernandes",
+    "team": "MUN",
+    "position": "MID",
+    "projected": 9.917,
+    "multiplier": 1.64,
+    "low_confidence": false
+   },
+   {
+    "code": 221466,
+    "challenge_id": 498,
+    "name": "Senesi",
+    "team": "TOT",
+    "position": "DEF",
+    "projected": 7.214,
+    "multiplier": 1.64,
+    "low_confidence": false
+   }
+  ]
  }
 }
