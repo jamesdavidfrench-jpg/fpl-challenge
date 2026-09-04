@@ -75,8 +75,20 @@ given. Names are matched without accents, so "Muharemovic" finds
 "Muharemović". It refuses ambiguous or misspelled names rather than guessing,
 and warns when a named player is injured.
 
-**The draft is a guess, and GW1 measured how good a guess.** Of the 214 players
-it named, 70% played an hour and 14% did not play at all. The misses were not
+**Once a gameweek has finished, the draft is built from this season's minutes.**
+Each player is scored by the share of available minutes he has played, and the
+pre-season signals (price, prior-season minutes, ownership) only separate players
+on the same minutes. The eleven is the best-scored players inside these limits:
+one keeper, three to five defenders, two to six midfielders, one to three
+forwards. So the shape comes out of the minutes too, and the file records it per
+club under `shapes`. Re-run the draft after each gameweek; it overwrites hand
+edits, so re-apply any `--set` that the minutes do not already agree with.
+The report's first section, *picked with few minutes*, is the list to review:
+those are the slots the constraints forced rather than the minutes chose.
+
+**Pre-season, with no minutes, the draft is a guess, and GW1 measured how good a
+guess.** Of the 214 players it named, 70% played an hour and 14% did not play at
+all. The misses were not
 random: every one of the eight highest-projected picks that failed to start was
 named here and owned by under 3% of managers. The projection now reads ownership
 as a check on this file - a naming nobody owns lifts a player far less than a
@@ -88,9 +100,10 @@ where it is wrong.
 
 Two things the draft cannot work out on its own, so check them:
 
-- **Formation.** The draft assumes a back four. Clubs playing three at the back
-  field five defenders in Fantasy terms, because wing-backs count as defenders.
-  Correct those clubs by hand or the picker is choosing from the wrong four.
+- **Formation.** The pre-season draft assumes a back four. Clubs playing three
+  at the back field five defenders in Fantasy terms, because wing-backs count as
+  defenders. Correct those clubs by hand or the picker is choosing from the wrong
+  four. Once minutes exist the shape is derived, so this only applies pre-season.
 - **Holding midfielders.** They start every week but are barely owned, because
   ownership follows attacking returns. The draft under-rates them, and so does
   the ownership check above - which is exactly why that check can only ever
