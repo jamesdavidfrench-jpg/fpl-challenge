@@ -18,6 +18,7 @@ only, no installs.
 
 ```
 python scripts/fpl_data.py      # refresh data (first run takes ~2 min, then cached)
+python scripts/fpl_starters.py  # redraft the elevens from the latest minutes
 python scripts/fpl_solve.py     # print the recommended squad
 python scripts/fpl_track.py record
 ```
@@ -34,7 +35,14 @@ python scripts/fpl_track.py record
    pushed from the desktop. `fpl_solve.py` warns when that file is more than 12
    hours old and refuses to solve a gameweek that has already finished.
 
-2. **Check the twist is known and current.** Look for
+2. **Redraft the starting elevens.** Run `fpl_starters.py` whenever a gameweek
+   has finished since the last draft - `fpl_solve.py` warns when that is the
+   case. Review the first two sections of its report (*started, then did not
+   play last week* and *picked with few minutes*); everything else is a
+   judgement call the minutes have already made. Re-apply any `--set` the
+   minutes do not agree with.
+
+3. **Check the twist is known and current.** Look for
    `data/twists/gw<N>.json`. The gameweek's *squad* rules come from the API and
    are trustworthy. The *scoring* twist does not - `overrides.scoring` has been
    empty every week so far, so the twist only exists in prose.
@@ -50,12 +58,12 @@ python scripts/fpl_track.py record
    you have encoded it before running the solver.** Getting the twist wrong
    makes every pick wrong, and it is the one step no API can verify.
 
-3. **Solve.** Run `fpl_solve.py`. Show the recommended squad plus one or two
+4. **Solve.** Run `fpl_solve.py`. Show the recommended squad plus one or two
    alternatives. Keep the one-line reason per pick that the script produces.
 
-4. **Record it.** Run `fpl_track.py record` so the week can be scored later.
+5. **Record it.** Run `fpl_track.py record` so the week can be scored later.
 
-5. **Score finished weeks.** If a previous gameweek has finished, run
+6. **Score finished weeks.** If a previous gameweek has finished, run
    `fpl_track.py score` then `fpl_track.py report`.
 
 ## Starting elevens
@@ -75,8 +83,13 @@ given. Names are matched without accents, so "Muharemovic" finds
 "Muharemović". It refuses ambiguous or misspelled names rather than guessing,
 and warns when a named player is injured.
 
-**Once a gameweek has finished, the draft is built from this season's minutes.**
-Each player is scored by the share of available minutes he has played, and the
+**Once a gameweek has finished, the draft is built from this season's minutes,
+weighted towards the most recent.** Each finished gameweek in the last five counts
+0.6 times the one after it, so the last match matters most: a regular rested
+once still outranks his stand-in, and after two matches out he does not. That is
+how an ever-present player gets dropped from the file when his club drops him.
+Per-gameweek minutes come from the main game's live feed via `fpl_data.py`; if
+that feed was unreachable the draft falls back to the season total. The
 pre-season signals (price, prior-season minutes, ownership) only separate players
 on the same minutes. The eleven is the best-scored players inside these limits:
 one keeper, three to five defenders, two to six midfielders, one to three

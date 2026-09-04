@@ -1180,6 +1180,19 @@ def main():
     if starters:
         n = sum(len(v) for v in (starters.get("expected_xi") or {}).values())
         print(f"using reviewed starting elevens ({n} players)\n")
+        # The elevens are redrafted from minutes after each gameweek. If one
+        # has finished since the file was written, it is describing last
+        # week's teams, and who plays is most of the error in this model.
+        finished = len(data.get("finished_gameweeks") or []) or (ev["id"] - 1)
+        through = starters.get("through_gw")
+        if through is None or through < finished:
+            print(
+                f"warning: starters.json was drafted through GW{through or '?'} "
+                f"but GW{finished} has finished. Run `python scripts/fpl_starters.py` "
+                f"to redraft the elevens from the latest minutes, then re-apply "
+                f"any --set corrections.\n",
+                file=sys.stderr,
+            )
     players = project(data, scoring, starters)
     players = apply_twist(players, twist, data["teams"])
 

@@ -32,6 +32,8 @@ CACHE = os.path.join(DATA, "cache")
 # Everything else moves during the week.
 TTL_LIVE = 30 * 60
 TTL_HISTORY = 30 * 24 * 3600
+# A finished gameweek's minutes never change either.
+TTL_FINISHED_GW = 365 * 24 * 3600
 
 
 def _get(url, timeout=30):
@@ -109,6 +111,29 @@ def build(verbose=True):
     teams = {t["id"]: t for t in chal["teams"]}
     main_by_code = {p["code"]: p for p in main["elements"]}
 
+    # Per-gameweek minutes for every finished gameweek, from the main game's
+    # live feed (its element ids are the main-game ids the players carry as
+    # main_id). The bootstrap only has a season total, and a season total
+    # cannot tell a regular who was just dropped from one who is still
+    # playing. The starters draft weights these by recency.
+    finished = sorted(e["id"] for e in main["events"] if e.get("finished"))
+    gw_minutes, gw_starts = {}, {}
+    if finished and verbose:
+        print(f"Fetching per-gameweek minutes for GW{finished[0]}-{finished[-1]}...")
+    for gw in finished:
+        try:
+            live = fetch(f"{MAIN}/event/{gw}/live/", f"main_live_gw{gw}.json",
+                         TTL_FINISHED_GW)
+        except Exception as e:  # sandbox with no egress, or the API is down
+            print(f"  warn: GW{gw} live minutes unavailable ({e}); "
+                  f"the draft falls back to season totals", file=sys.stderr)
+            finished = [g for g in finished if g < gw]
+            break
+        for el in live.get("elements", []):
+            st = el.get("stats") or {}
+            gw_minutes.setdefault(el["id"], {})[str(gw)] = st.get("minutes", 0)
+            gw_starts.setdefault(el["id"], {})[str(gw)] = st.get("starts", 0)
+
     # Only players who could actually be picked are worth pulling history for.
     selectable = [p for p in chal["elements"] if p.get("can_select")]
     if verbose:
@@ -151,6 +176,10 @@ def build(verbose=True):
                 "penalties_order": p.get("penalties_order"),
                 "form": _f(p.get("form")),
                 "minutes": p.get("minutes", 0),
+                # {gameweek: minutes} for finished gameweeks only, most useful
+                # read newest-first. Missing when the live feed was unreachable.
+                "gw_minutes": gw_minutes.get(m.get("id"), {}) if finished else None,
+                "gw_starts": gw_starts.get(m.get("id"), {}) if finished else None,
                 "total_points": p.get("total_points", 0),
                 # Ownership comes from the main game, which is live and priced
                 # by a few million managers. The Challenge copy reads 0.0 before
@@ -175,6 +204,8 @@ def build(verbose=True):
             "released": ev.get("released"),
             "overrides": ev.get("overrides", {}),
         },
+        # Gameweeks whose per-player minutes are in gw_minutes.
+        "finished_gameweeks": finished,
         "base_rules": chal["game_config"]["rules"],
         "base_scoring": chal["game_config"]["scoring"],
         "teams": {t["short_name"]: t["id"] for t in chal["teams"]},

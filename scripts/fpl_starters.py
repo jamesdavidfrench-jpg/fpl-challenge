@@ -45,6 +45,15 @@ SHAPE = {1: 1, 2: 4, 3: 4, 4: 2}
 SHAPE_MIN = {1: 1, 2: 3, 3: 2, 4: 1}
 SHAPE_MAX = {1: 1, 2: 5, 3: 6, 4: 3}
 
+# Minutes are weighted by recency. Each gameweek back counts RECENCY_DECAY
+# times the one after it, over the last WINDOW_GWS finished gameweeks. At 0.6
+# a regular rested for one match still outranks his one-off stand-in (0.54 to
+# 0.46 over four gameweeks), and drops below him after two consecutive
+# absences (0.26 to 0.74). That is the behaviour wanted: ever-present players
+# do get dropped, and one rest is not being dropped.
+RECENCY_DECAY = 0.6
+WINDOW_GWS = 5
+
 # How much the pre-season signals (price, prior-season minutes, ownership)
 # count once this season's minutes exist. Minutes are on a 0-1 scale, so at
 # 0.3 a player who has started one of two matches (0.5) still beats anyone
@@ -64,9 +73,29 @@ def last_season_minutes(p):
 
 
 def finished_gameweeks(data):
-    """Gameweeks whose minutes are in the totals. The open one is not."""
+    """Number of finished gameweeks. The open one is not counted."""
+    ids = data.get("finished_gameweeks")
+    if ids:
+        return len(ids)
     ev = data.get("event") or {}
     return max(0, int(ev.get("id", 1)) - 1)
+
+
+def recent_gameweeks(data):
+    """Finished gameweek ids inside the window, newest first."""
+    ids = data.get("finished_gameweeks")
+    if not ids:
+        n = finished_gameweeks(data)
+        ids = list(range(1, n + 1))
+    return sorted(ids, reverse=True)[:WINDOW_GWS]
+
+
+def minutes_pattern(p, data):
+    """Per-gameweek minutes inside the window, newest first, for the report."""
+    gm = p.get("gw_minutes")
+    if not gm:
+        return f"{p.get('minutes') or 0} min total"
+    return " ".join(f"GW{gw}:{gm.get(str(gw), 0)}" for gw in recent_gameweeks(data))
 
 
 def start_score(p, group_max_cost):
@@ -82,15 +111,28 @@ def start_score(p, group_max_cost):
     return 0.50 * price + 0.30 * minutes + 0.20 * owned
 
 
-def season_share(p, gws):
-    """Share of this season's available minutes the player has played, 0-1.
+def season_share(p, gws, data=None):
+    """Recency-weighted share of available minutes the player has played, 0-1.
 
-    Minutes come from the main game and are a season total, so a player who
-    moved club on deadline day carries his minutes for the old club with him.
-    That is still the right signal: the new club bought a starter.
+    With per-gameweek minutes, each finished gameweek in the window counts
+    RECENCY_DECAY times the one after it, so the last match matters most.
+    Without them (older data file, or the live feed was unreachable) it falls
+    back to the season total over all finished gameweeks.
+
+    Minutes come from the main game, so a player who moved club on deadline
+    day carries his minutes for the old club with him. That is still the right
+    signal: the new club bought a starter.
     """
     if gws <= 0:
         return 0.0
+    gm = p.get("gw_minutes")
+    if gm is not None and data is not None and data.get("finished_gameweeks"):
+        num = den = 0.0
+        for age, gw in enumerate(recent_gameweeks(data)):
+            w = RECENCY_DECAY ** age
+            num += w * min(1.0, gm.get(str(gw), 0) / 90.0)
+            den += w
+        return num / den if den else 0.0
     return min(1.0, (p.get("minutes") or 0) / (90.0 * gws))
 
 
@@ -141,7 +183,7 @@ def draft(data):
             for p in group:
                 prior = start_score(p, gmax)
                 p["_prior"] = prior
-                p["_share"] = season_share(p, gws)
+                p["_share"] = season_share(p, gws, data)
                 p["_score"] = (p["_share"] + PRIOR_WEIGHT * prior) if gws else prior
 
         fit = [p for p in squad if S._availability(p) > 0]
@@ -181,7 +223,7 @@ def draft(data):
         for p in benched:
             if gws and p["_share"] >= MINUTES_REVIEW_SHARE:
                 flags.append((team, "left out despite playing a lot", p,
-                              f"{p.get('minutes') or 0} of {90*gws} min this season"))
+                              minutes_pattern(p, data)))
             elif not gws:
                 mins = last_season_minutes(p)
                 if mins and mins >= 2000:
@@ -191,9 +233,20 @@ def draft(data):
         for p in picked:
             if gws and p["_share"] < MINUTES_REVIEW_SHARE:
                 joined = p.get("team_join_date") or ""
-                why = (f"joined {joined}" if joined >= "2026-08-15"
-                       else f"{p.get('minutes') or 0} of {90*gws} min this season")
+                why = minutes_pattern(p, data)
+                if joined >= "2026-08-15":
+                    why += f", joined {joined}"
                 flags.append((team, "picked with few minutes", p, why))
+            # The case the rolling window exists for: a player who was
+            # starting and then was not. He may be injured without the API
+            # saying so yet, or he may have been dropped.
+            gm = p.get("gw_minutes") or {}
+            recent = recent_gameweeks(data)
+            if gws >= 2 and gm and len(recent) >= 2:
+                last, before = gm.get(str(recent[0]), 0), gm.get(str(recent[1]), 0)
+                if last == 0 and before >= 60:
+                    flags.append((team, "started, then did not play last week", p,
+                                  minutes_pattern(p, data)))
             if not gws:
                 mins = last_season_minutes(p)
                 if p["history_past"] and mins == 0:
@@ -207,7 +260,7 @@ def draft(data):
         readable[team] = [
             f"{S.POS_NAME[p['position']]} {p['name']} "
             f"({p['cost']/10:.1f}m, {p.get('owned') or 0:.1f}%, "
-            f"{p.get('minutes') or 0} min)"
+            f"{minutes_pattern(p, data)})"
             for p in sorted(picked, key=lambda x: (x["position"], -x["_score"]))
         ]
 
@@ -337,9 +390,14 @@ def main():
                             "heuristics. Codes are FPL player codes; readable "
                             "is a human-facing mirror and is not read back.",
                     "source": (f"drafted from this season's minutes through GW{gws}, "
-                               f"pre-season price/history/ownership as tiebreak"
+                               f"weighted {RECENCY_DECAY} per gameweek back over "
+                               f"the last {WINDOW_GWS}, pre-season "
+                               f"price/history/ownership as tiebreak"
                                if gws else
                                "pre-season draft: price, prior-season minutes, ownership"),
+                    # The solver compares this with the data file and warns
+                    # when a gameweek has finished since the draft.
+                    "through_gw": gws,
                     "shapes": shapes,
                     "expected_xi": xi,
                     "readable": readable,
@@ -385,7 +443,8 @@ def main():
                   "these are wrong.")
             print()
 
-    order = ["picked with few minutes", "left out despite playing a lot",
+    order = ["started, then did not play last week", "picked with few minutes",
+             "left out despite playing a lot",
              "too close to call", "injured, would otherwise start",
              "picked but did not play last season", "no Premier League record at all"]
     for kind in order:
