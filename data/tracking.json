@@ -487,8 +487,8 @@
   "event": 3,
   "event_name": "Gameweek 3",
   "twist": "All Out Attack",
-  "recorded_at": "2026-09-02T10:43:13Z",
-  "projected": 65.02,
+  "recorded_at": "2026-09-04T14:57:51Z",
+  "projected": 66.02,
   "captain_code": 223094,
   "picks": [
    {
@@ -507,17 +507,27 @@
     "name": "Saka",
     "team": "ARS",
     "position": "MID",
-    "projected": 9.154,
+    "projected": 9.163,
     "multiplier": 1.64,
     "low_confidence": false
    },
    {
-    "code": 489639,
-    "challenge_id": 109,
-    "name": "Verbruggen",
-    "team": "BHA",
+    "code": 200720,
+    "challenge_id": 82,
+    "name": "Kelleher",
+    "team": "BRE",
     "position": "GKP",
-    "projected": 5.858,
+    "projected": 5.865,
+    "multiplier": 1.64,
+    "low_confidence": false
+   },
+   {
+    "code": 465730,
+    "challenge_id": 115,
+    "name": "De Cuyper",
+    "team": "BHA",
+    "position": "DEF",
+    "projected": 8.197,
     "multiplier": 1.64,
     "low_confidence": false
    },
@@ -527,7 +537,7 @@
     "name": "Isak",
     "team": "LIV",
     "position": "FWD",
-    "projected": 9.619,
+    "projected": 9.62,
     "multiplier": 1.64,
     "low_confidence": false
    },
@@ -538,16 +548,6 @@
     "team": "MUN",
     "position": "MID",
     "projected": 9.917,
-    "multiplier": 1.64,
-    "low_confidence": false
-   },
-   {
-    "code": 221466,
-    "challenge_id": 498,
-    "name": "Senesi",
-    "team": "TOT",
-    "position": "DEF",
-    "projected": 7.214,
     "multiplier": 1.64,
     "low_confidence": false
    }
