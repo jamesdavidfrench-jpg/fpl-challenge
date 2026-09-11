@@ -1,0 +1,15 @@
+{
+  "event": 4,
+  "name": "Derby Day",
+  "description": "Double points for Manchester City and Manchester United players. Up to three players per club, six players, unlimited budget.",
+  "player_multipliers": [
+    {
+      "factor": 2,
+      "teams": ["MCI", "MUN"],
+      "_note": "All points double for these players, not only goals and assists - the same shape as the GW2 promoted-club twist. MUN host MCI in this gameweek (2026-09-13 15:30Z), so the two doubled clubs play each other: a doubled clean sheet on one side means the other side's doubled attackers returned nothing."
+    }
+  ],
+  "scoring_multipliers": {},
+  "source": "https://fplchallenge.premierleague.com/ home page, read 2026-09-11: \"Gameweek 4 Challenge - Derby Day - Double Points for Manchester United and Manchester City players. Up to three players per club.\" Same challenge in https://www.premierleague.com/en/news/4683622/fpl-challenge-is-live-for-202627-see-the-first-five-challenges: \"For Gameweek 4, players from Manchester City and Manchester United will score DOUBLE points, with the per-club player limit expanded to THREE.\" The API confirms the limit: event 4 overrides.rules.squad_team_limit = 3, released = true.",
+  "verified_on": "2026-09-11"
+}
