@@ -141,6 +141,12 @@ def build_pool(data, twist, starters, target_teams):
             "low_confidence": low_conf,
             "is_home": is_home,
             "opp_diff": diff,
+            "opp_team_id": f["away"] if is_home else f["home"],
+            # The difficulty the opponent faces, which is what this team is
+            # expected to score. Equal to opp_diff only when the two sides are
+            # rated the same, as they happen to be in the GW4 derby - so getting
+            # this wrong stays invisible until a lopsided fixture.
+            "opp_own_diff": f["away_diff"] if is_home else f["home_diff"],
             "goal_rate": rates["goals"] * atk,
             "assist_rate": rates["assists"] * atk,
             "save_rate": rates["saves"],
@@ -219,12 +225,15 @@ def simulate(pool, trials, seed=7):
     # Each team's expected goals is what its opponent is expected to concede,
     # which is the same number fpl_solve derives its clean sheet odds from. Both
     # sides of the squad therefore read one draw, not two.
-    # The team total must stay exactly the rate fpl_solve derives its clean
-    # sheet odds from, or the two halves of the derby stop agreeing with the
-    # projection. Do not clamp this to the players' summed rates - doing that
-    # made both keepers concede more than the model says they should.
+    # What a team scores is what its opponent is expected to concede, so this
+    # reads the opponent's difficulty, not its own. That keeps every clean sheet
+    # in the simulation equal to fpl_solve's clean_sheet_prob for the same
+    # fixture, which is what makes the two models agree.
+    #
+    # Do not clamp this to the players' summed goal rates. Doing that made both
+    # keepers concede more than the model says they should.
     team_lambda = {
-        tid: S.CONCEDE_RATE_BY_DIFF.get(pool[idxs[0]]["opp_diff"], 1.32)
+        tid: S.CONCEDE_RATE_BY_DIFF.get(pool[idxs[0]]["opp_own_diff"], 1.32)
         for tid, idxs in by_team.items()
     }
 
@@ -262,7 +271,12 @@ def simulate(pool, trials, seed=7):
     n = len(pool)
     out = [[0.0] * trials for _ in range(n)]
     teams = list(by_team)
-    other = {tid: [t for t in teams if t != tid] for tid in teams}
+    # The team that concedes what this one scores, read from the fixture rather
+    # than guessed. When both sides of a match are in the pool this is the link
+    # that makes a clean sheet and the opposing attacker's goal the same event.
+    # When only one side is in the pool there is no such link and the opponent's
+    # goals are drawn on their own.
+    opponent = {tid: pool[idxs[0]]["opp_team_id"] for tid, idxs in by_team.items()}
 
     for t in range(trials):
         goals_for = {}
@@ -292,9 +306,9 @@ def simulate(pool, trials, seed=7):
             # Conceded is what the other side in this match scored. With one
             # fixture per club and both clubs in the pool this is exact; if only
             # one club is in the pool it falls back to the expected rate.
-            opps = other[tid]
-            if opps:
-                conceded = goals_for[opps[0]]
+            opp = opponent[tid]
+            if opp in goals_for:
+                conceded = goals_for[opp]
             else:
                 conceded = _poisson(
                     rng, S.CONCEDE_RATE_BY_DIFF.get(pool[by_team[tid][0]]["opp_diff"], 1.32)
@@ -459,6 +473,136 @@ def legal_squads(pool, con):
     return results
 
 
+def count_legal_squads(pool, con):
+    """How many squads the rules allow, counted without building any of them.
+
+    Needed before deciding how to search. GW4's twist left 4,200, which can be
+    enumerated exactly; a week with no club restriction leaves 18.4 billion,
+    which cannot. Counting is cheap either way - a dynamic program over clubs,
+    carrying only the position counts.
+    """
+    size, climit = con["size"], con["club_limit"]
+    pmax = {k: v[1] for k, v in con["positions"].items()}
+    pmin = {k: v[0] for k, v in con["positions"].items()}
+
+    by_club = {}
+    for pl in pool:
+        by_club.setdefault(pl["team"], []).append(pl["position"])
+
+    state = {(0, 0, 0, 0, 0): 1}
+    for poss in by_club.values():
+        opts = {}
+        for k in range(0, min(climit, size) + 1):
+            for combo in itertools.combinations(poss, k):
+                c = [0, 0, 0, 0]
+                for p in combo:
+                    c[p - 1] += 1
+                key = tuple(c)
+                opts[key] = opts.get(key, 0) + 1
+        nxt = {}
+        for (t, a, b, cc, d), n in state.items():
+            for (x, y, z, w), m in opts.items():
+                nt = t + x + y + z + w
+                if nt > size:
+                    continue
+                na, nb, nc, nd = a + x, b + y, cc + z, d + w
+                if (na > pmax.get(1, size) or nb > pmax.get(2, size)
+                        or nc > pmax.get(3, size) or nd > pmax.get(4, size)):
+                    continue
+                key = (nt, na, nb, nc, nd)
+                nxt[key] = nxt.get(key, 0) + n * m
+        state = nxt
+    return sum(
+        n for (t, a, b, c, d), n in state.items()
+        if t == size and a >= pmin.get(1, 0) and b >= pmin.get(2, 0)
+        and c >= pmin.get(3, 0) and d >= pmin.get(4, 0)
+    )
+
+
+def _percentile(vals, q):
+    s = sorted(vals)
+    return s[min(len(s) - 1, int(q * len(s)))]
+
+
+def _squad_legal(pool, squad, con):
+    size, climit = con["size"], con["club_limit"]
+    if len(squad) != size or len(set(squad)) != size:
+        return False
+    pcount, ccount = {}, {}
+    for i in squad:
+        pl = pool[i]
+        pcount[pl["position"]] = pcount.get(pl["position"], 0) + 1
+        ccount[pl["team"]] = ccount.get(pl["team"], 0) + 1
+        if ccount[pl["team"]] > climit:
+            return False
+    for pos, (lo, hi) in con["positions"].items():
+        if not lo <= pcount.get(pos, 0) <= hi:
+            return False
+    return True
+
+
+def search_squads(pool, sims, con, target, cands=40, restarts=40,
+                  trials=2500, seed=11):
+    """Hill-climb towards squads that clear the target, for weeks too big to enumerate.
+
+    Exhaustive is always preferred and main() uses it whenever the space is
+    small enough. This is the fallback, and it is a heuristic - it returns good
+    squads, not provably the best one.
+
+    Candidates are ranked by each player's own 90th percentile rather than his
+    mean, because what earns a place in a ceiling squad is the size of his good
+    week. Ranking by mean here would quietly reintroduce the very bias this
+    script exists to remove.
+    """
+    rng = random.Random(seed)
+    short = sorted(
+        range(len(pool)),
+        key=lambda i: _percentile(sims[i][:trials], 0.90),
+        reverse=True,
+    )[:cands]
+
+    def hits(squad):
+        cap = max(squad, key=lambda i: _percentile(sims[i][:trials], 0.90))
+        vecs = [sims[i][:trials] for i in squad] + [sims[cap][:trials]]
+        return sum(1 for vals in zip(*vecs) if sum(vals) >= target) / trials
+
+    def random_squad():
+        for _ in range(400):
+            pick = rng.sample(short, min(con["size"], len(short)))
+            if _squad_legal(pool, pick, con):
+                return pick
+        return None
+
+    found, seen = [], set()
+    for _ in range(restarts):
+        squad = random_squad()
+        if squad is None:
+            continue
+        best = hits(squad)
+        for _ in range(30):
+            improved = False
+            for out in list(squad):
+                for inn in short:
+                    if inn in squad:
+                        continue
+                    trial = [x for x in squad if x != out] + [inn]
+                    if not _squad_legal(pool, trial, con):
+                        continue
+                    h = hits(trial)
+                    if h > best:
+                        squad, best, improved = trial, h, True
+                        break
+                if improved:
+                    break
+            if not improved:
+                break
+        key = tuple(sorted(squad))
+        if key not in seen:
+            seen.add(key)
+            found.append(tuple(squad))
+    return found
+
+
 def score_squads(pool, sims, squads, target, top=25):
     """Rank squads by how often they clear the target, not by their average."""
     trials = len(sims[0])
@@ -538,6 +682,8 @@ def main():
     ap.add_argument("--trials", type=int, default=20000)
     ap.add_argument("--top", type=int, default=6)
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--max-enumerate", type=int, default=500000,
+                    help="above this many legal squads, search instead of enumerating")
     ap.add_argument("--allow-stale", action="store_true")
     args = ap.parse_args()
 
@@ -568,8 +714,15 @@ def main():
     print("  worst remaining gap after calibration: {} {:+.3f} pts\n".format(
         worst[1], worst[3] - worst[2]))
 
-    squads = legal_squads(pool, con)
-    print("{} legal squads enumerated.\n".format(len(squads)))
+    space = count_legal_squads(pool, con)
+    if space <= args.max_enumerate:
+        squads = legal_squads(pool, con)
+        print("{:,} legal squads - enumerated exactly.\n".format(space))
+    else:
+        squads = search_squads(pool, sims, con, args.target, seed=args.seed)
+        print("{:,} legal squads - too many to enumerate, so searched instead.".format(space))
+        print("{} distinct squads found by hill-climbing. This is a good answer,"
+              " not a provably best one.\n".format(len(squads)))
 
     ranked = score_squads(pool, sims, squads, args.target, top=args.top)
 

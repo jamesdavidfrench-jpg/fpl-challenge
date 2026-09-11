@@ -62,9 +62,28 @@ python scripts/fpl_track.py record
 4. **Solve.** Run `fpl_solve.py`. Show the recommended squad plus one or two
    alternatives. Keep the one-line reason per pick that the script produces.
 
-5. **Record it.** Run `fpl_track.py record` so the week can be scored later.
+5. **Run the ceiling squad too.** Run `fpl_ceiling.py`. It answers a different
+   question - not which squad scores most on average, but which is most likely
+   to clear the score that wins James's league. Run it every week, and report
+   both. It takes under a minute.
 
-6. **Score finished weeks.** If a previous gameweek has finished, run
+   The two often agree, and saying so is a result. When they differ, say what
+   the ceiling squad gives up in average points and what it buys in chance of
+   winning the week, and let James choose. Do not quietly enter one or the
+   other - the recorded pick is whichever he enters, and `fpl_track.py` has
+   `chosen_by` and `deviation_reason` for exactly this.
+
+   It enumerates every legal squad when it can and searches when it cannot, and
+   says which it did. Weeks whose twist restricts the clubs are small enough to
+   solve exactly - GW4's Derby Day left 4,200 squads. An unrestricted week
+   leaves about 18 billion, so it hill-climbs instead and the answer is a good
+   squad rather than a provably best one. On GW4 the search found a squad 0.2
+   points of a percentage behind the exact answer, which is inside the
+   simulation's own noise.
+
+6. **Record it.** Run `fpl_track.py record` so the week can be scored later.
+
+7. **Score finished weeks.** If a previous gameweek has finished, run
    `fpl_track.py score` then `fpl_track.py report`.
 
 ## Starting elevens
@@ -306,6 +325,12 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   before anything is ranked, so the simulation adds variance and correlation and
   nothing else. It prints the largest correction it had to make - a big one means
   the simulation has drifted from the projection and should be fixed, not used.
+  That check is what caught the three bugs found while building it: the summed
+  goal rates overflowing the team total, which made both keepers concede too
+  much; the bonus cap over-paying attackers by about a fifth; and a team's
+  scoring rate being read from its own fixture difficulty rather than its
+  opponent's. Keep the check - it is the only thing standing between this script
+  and a confidently wrong answer.
 
   **It does not always disagree with the average, and when it agrees that is a
   result rather than a wasted run.** GW4 was the first case: the best squad by
