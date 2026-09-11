@@ -77,8 +77,25 @@ def player_rates(p, xi, confirmed_teams):
     return rates, low_conf, confirmed
 
 
-def build_pool(data, twist, starters, target_teams):
-    """Every player from the doubled clubs, with the parts needed to simulate."""
+def resolve_scoring(data, twist):
+    """The scoring table actually in force this week.
+
+    Must match fpl_solve.main() exactly. Reading base_scoring on its own misses
+    both the event's own overrides and the twist's scoring_overrides, and a twist
+    like GW5's "The Shield" - defensive contribution worth 10 instead of 2 -
+    lives entirely in the second of those. Getting it wrong here is silent: the
+    simulation would rank squads under last week's rules and say nothing.
+    """
+    scoring = dict(data["base_scoring"])
+    for k, v in ((data["event"].get("overrides") or {}).get("scoring") or {}).items():
+        scoring[k] = v
+    for k, v in ((twist or {}).get("scoring_overrides") or {}).items():
+        scoring[k] = v
+    return scoring
+
+
+def build_pool(data, twist, starters, target_teams, scoring=None):
+    """Every eligible player, with the parts needed to simulate."""
     xi = set()
     for codes in ((starters or {}).get("expected_xi") or {}).values():
         xi.update(int(c) for c in codes)
@@ -86,7 +103,8 @@ def build_pool(data, twist, starters, target_teams):
 
     # project() is still the source of truth for the expected value and for the
     # twist multiplier, so take those from it rather than recomputing them.
-    scoring = data["base_scoring"]
+    if scoring is None:
+        scoring = resolve_scoring(data, twist)
     projected = S.project(data, scoring, starters)
     S.apply_twist(projected, twist, data["teams"])
     by_code = {p["code"]: p for p in projected}
@@ -555,29 +573,119 @@ def search_squads(pool, sims, con, target, cands=40, restarts=40,
     script exists to remove.
     """
     rng = random.Random(seed)
-    short = sorted(
-        range(len(pool)),
-        key=lambda i: _percentile(sims[i][:trials], 0.90),
-        reverse=True,
-    )[:cands]
+    ceiling = {i: _percentile(sims[i][:trials], 0.90) for i in range(len(pool))}
+    ranked = sorted(range(len(pool)), key=lambda i: ceiling[i], reverse=True)
+
+    # The shortlist is the best players overall plus the best few from every
+    # club. The second half is not padding: a tight club limit makes a squad of
+    # the top forty players illegal, because they come from too few clubs. GW5's
+    # placeholder rules allow one player per club, and a shortlist without the
+    # per-club entries could not build a single legal squad.
+    per_club, per_pos = {}, {}
+    for i in ranked:
+        per_club.setdefault(pool[i]["team"], []).append(i)
+        per_pos.setdefault(pool[i]["position"], []).append(i)
+
+    short, seen_short = [], set()
+
+    def take(idxs, n):
+        for i in idxs[:n]:
+            if i not in seen_short:
+                seen_short.add(i)
+                short.append(i)
+
+    take(ranked, cands)
+    # Every position needs its own entries, and the best players overall do not
+    # supply them. Under GW5's "The Shield" a defensive contribution pays 10, so
+    # the top forty are all outfielders and the goalkeeper slot cannot be filled
+    # at all - which is why the first run of this returned no squads rather than
+    # a bad one.
+    for pos, (lo, hi) in con["positions"].items():
+        take(per_pos.get(pos, []), max(12, hi * 4))
+    # And a tight club limit needs breadth across clubs, not just across
+    # positions: six players one-per-club cannot come from the same four teams.
+    for idxs in per_club.values():
+        take(idxs, 2)
+
+    need_clubs = -(-con["size"] // max(1, con["club_limit"]))
+    have_clubs = len(set(pool[i]["team"] for i in short))
+    missing = [p for p, (lo, _) in con["positions"].items()
+               if lo > 0 and not [i for i in short if pool[i]["position"] == p]]
+    if have_clubs < need_clubs or missing:
+        short = list(range(len(pool)))
 
     def hits(squad):
         cap = max(squad, key=lambda i: _percentile(sims[i][:trials], 0.90))
         vecs = [sims[i][:trials] for i in squad] + [sims[cap][:trials]]
         return sum(1 for vals in zip(*vecs) if sum(vals) >= target) / trials
 
+    by_pos = {}
+    for i in short:
+        by_pos.setdefault(pool[i]["position"], []).append(i)
+
+    def random_shape():
+        """A legal spread of positions, drawn rather than assumed.
+
+        Rejection sampling whole squads does not work once the club limit
+        bites - six players drawn from the shortlist are almost never from six
+        different clubs, which returned no squads at all on GW5. Choosing the
+        shape first and then filling each slot from a club still available
+        builds a legal squad directly instead of hoping for one.
+        """
+        lo = {p: con["positions"][p][0] for p in con["positions"]}
+        hi = {p: con["positions"][p][1] for p in con["positions"]}
+        shape = dict(lo)
+        spare = con["size"] - sum(shape.values())
+        slots = [p for p in shape if shape[p] < hi[p]]
+        while spare > 0 and slots:
+            p = rng.choice(slots)
+            shape[p] += 1
+            spare -= 1
+            slots = [q for q in shape if shape[q] < hi[q]]
+        return shape if spare == 0 else None
+
     def random_squad():
-        for _ in range(400):
-            pick = rng.sample(short, min(con["size"], len(short)))
-            if _squad_legal(pool, pick, con):
-                return pick
+        for _ in range(200):
+            shape = random_shape()
+            if shape is None:
+                continue
+            squad, club_count, ok = [], {}, True
+            wants = [p for p, n in shape.items() for _ in range(n)]
+            rng.shuffle(wants)
+            for pos in wants:
+                options = [
+                    i for i in by_pos.get(pos, [])
+                    if i not in squad
+                    and club_count.get(pool[i]["team"], 0) < con["club_limit"]
+                ]
+                if not options:
+                    ok = False
+                    break
+                # Favour the higher ceilings, but not so hard that every restart
+                # begins from the same squad.
+                options.sort(key=lambda i: ceiling[i], reverse=True)
+                pick = options[min(len(options) - 1, int(rng.random() ** 2 * 12))]
+                squad.append(pick)
+                club_count[pool[pick]["team"]] = club_count.get(pool[pick]["team"], 0) + 1
+            if ok and _squad_legal(pool, squad, con):
+                return squad
         return None
 
     found, seen = [], set()
     for _ in range(restarts):
         squad = random_squad()
         if squad is None:
-            continue
+            # A shortlist that cannot build a legal squad is worse than a slow
+            # one. Widen to the whole pool and try again rather than returning
+            # nothing, which is what GW5 did before the shortlist was fixed.
+            if len(short) < len(pool):
+                short = list(range(len(pool)))
+                by_pos = {}
+                for i in short:
+                    by_pos.setdefault(pool[i]["position"], []).append(i)
+                squad = random_squad()
+            if squad is None:
+                continue
         best = hits(squad)
         for _ in range(30):
             improved = False

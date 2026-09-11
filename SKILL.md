@@ -76,10 +76,21 @@ python scripts/fpl_track.py record
    It enumerates every legal squad when it can and searches when it cannot, and
    says which it did. Weeks whose twist restricts the clubs are small enough to
    solve exactly - GW4's Derby Day left 4,200 squads. An unrestricted week
-   leaves about 18 billion, so it hill-climbs instead and the answer is a good
-   squad rather than a provably best one. On GW4 the search found a squad 0.2
-   points of a percentage behind the exact answer, which is inside the
-   simulation's own noise.
+   leaves billions, so it hill-climbs instead and the answer is a good squad
+   rather than a provably best one. On GW4 the search found a squad 0.2 of a
+   percentage point behind the exact answer, which is inside the simulation's
+   own noise. The exact path takes about 20 seconds and the search about 45.
+
+   **The search is the fragile half, so dry-run it whenever the twist changes
+   shape.** It builds squads position by position from a shortlist, and the
+   shortlist has to cover every position and enough clubs or it cannot build a
+   legal squad at all. A GW5 dry run returned zero squads twice before this was
+   right: once because six players drawn at random are almost never from six
+   different clubs under a one-per-club limit, and once because "The Shield"
+   makes a defensive contribution worth 10, which pushes every goalkeeper out of
+   the top forty and leaves the keeper slot unfillable. It now widens to the
+   whole pool rather than returning nothing, but returning nothing is the
+   failure to watch for.
 
 6. **Record it.** Run `fpl_track.py record` so the week can be scored later.
 
