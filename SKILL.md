@@ -20,6 +20,7 @@ only, no installs.
 python scripts/fpl_data.py      # refresh data (first run takes ~2 min, then cached)
 python scripts/fpl_starters.py  # redraft the elevens from the latest minutes
 python scripts/fpl_solve.py     # print the recommended squad
+python scripts/fpl_ceiling.py   # the squad most likely to WIN the week
 python scripts/fpl_track.py record
 ```
 
@@ -287,11 +288,32 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   players, and hauls come from concentrating risk rather than spreading it. The
   model has no ceiling term and does not know the difference.
 
-  This is not academic for James. His league has 8 entries and in GW1 all seven
+  This is not academic for James. His league has 9 entries and in GW1 all eight
   of the others beat 48, in a week the game average was 34. Beating the average
-  is not the target; the target is roughly double it. The fix is a second squad
-  optimised for the chance of clearing a high score rather than for the average
-  one, printed alongside the current recommendation - not yet built.
+  is not the target; the target is roughly double it.
+
+  `fpl_ceiling.py` is the answer to this, built 2026-09-11. It simulates the
+  gameweek instead of averaging it, and ranks squads by how often they clear a
+  target score - defaulting to 80, which is what has won James's league, where
+  the weekly winner scored 78, 90 and 69 in the first three gameweeks. Run it
+  alongside `fpl_solve.py` whenever the recommended squad is concentrated in few
+  matches. Two things it sees that an average cannot: players in the same match
+  are correlated, so a squad needing both a clean sheet and the opposing
+  attacker's goal cannot have both; and a lumpy six is worth more than a steady
+  six with the same mean.
+
+  Every player's simulated mean is calibrated back to `fpl_solve`'s projection
+  before anything is ranked, so the simulation adds variance and correlation and
+  nothing else. It prints the largest correction it had to make - a big one means
+  the simulation has drifted from the projection and should be fixed, not used.
+
+  **It does not always disagree with the average, and when it agrees that is a
+  result rather than a wasted run.** GW4 was the first case: the best squad by
+  average was also the best by chance of clearing 80 (29.3%), and at a target of
+  100 the same five outfield players held with only the defender changing. The
+  twist left 22 eligible players in a single match, so there was no low-mean,
+  high-ceiling alternative to find - the best squad built around that week's
+  lottery ticket cleared 80 just 25.4% of the time.
 - **The squad returned is exactly optimal when the budget is unlimited**, which
   is every Challenge gameweek so far. If a gameweek ever sets a real budget, the
   solver prices cost into each player and tunes that price until the squad fits,
