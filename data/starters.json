@@ -209,30 +209,30 @@
    445087
   ],
   "MCI": [
-   223094,
-   437730,
-   209036,
    204936,
+   465351,
    171314,
+   209036,
    477424,
-   440993,
-   578153,
+   448047,
    215379,
+   209244,
    466052,
-   209244
+   437730,
+   223094
   ],
   "MUN": [
-   141746,
    465247,
-   446008,
-   95658,
-   106760,
-   166989,
-   221820,
-   430871,
    216051,
+   95658,
+   221820,
+   596777,
+   166989,
    516895,
-   485711
+   446008,
+   141746,
+   176297,
+   430871
   ],
   "NEW": [
    465642,
@@ -471,30 +471,30 @@
    "FWD Isak (9.1m, 22.5%, GW3:63 GW2:90 GW1:90)"
   ],
   "MCI": [
-   "GKP Donnarumma (5.5m, 7.6%, GW3:90 GW2:90 GW1:90)",
-   "DEF Guéhi (6.0m, 18.5%, GW3:90 GW2:90 GW1:90)",
-   "DEF Rúben (5.5m, 1.8%, GW3:90 GW2:90 GW1:90)",
-   "DEF Gvardiol (5.6m, 20.0%, GW3:90 GW2:74 GW1:90)",
-   "DEF Khusanov (5.5m, 1.6%, GW3:90 GW2:88 GW1:90)",
-   "MID Semenyo (8.4m, 16.9%, GW3:90 GW2:90 GW1:90)",
-   "MID Ndiaye (5.9m, 9.3%, GW3:86 GW2:90 GW1:90)",
-   "MID Anderson (6.3m, 4.4%, GW3:90 GW2:81 GW1:62)",
-   "MID Cherki (7.8m, 29.6%, GW3:65 GW2:81 GW1:27)",
-   "MID Foden (7.0m, 4.3%, GW3:24 GW2:90 GW1:81)",
-   "FWD Haaland (15.5m, 71.2%, GW3:90 GW2:90 GW1:90)"
+   "GKP Donnarumma (5.5m)",
+   "DEF Matheus N. (5.9m)",
+   "DEF Rúben (5.5m)",
+   "DEF Guéhi (6.0m)",
+   "DEF Gvardiol (5.6m)",
+   "MID Enzo (6.9m)",
+   "MID Anderson (6.3m)",
+   "MID Foden (7.0m)",
+   "MID Cherki (7.8m)",
+   "MID Semenyo (8.4m)",
+   "FWD Haaland (15.5m)"
   ],
   "MUN": [
-   "GKP Lammens (5.0m, 11.7%, GW3:90 GW2:90 GW1:90)",
-   "DEF Maguire (4.9m, 11.4%, GW3:90 GW2:90 GW1:90)",
-   "DEF Shaw (4.4m, 12.9%, GW3:90 GW2:72 GW1:90)",
-   "DEF Martinez (5.0m, 1.2%, GW3:90 GW2:90 GW1:0)",
-   "DEF Dalot (4.9m, 1.9%, GW3:83 GW2:73 GW1:10)",
-   "MID B.Fernandes (12.0m, 44.1%, GW3:90 GW2:90 GW1:90)",
-   "MID Mbeumo (7.9m, 24.4%, GW3:90 GW2:90 GW1:90)",
-   "MID Tielemans (5.9m, 1.7%, GW3:90 GW2:90 GW1:66)",
-   "MID Cunha (7.9m, 6.7%, GW3:69 GW2:79 GW1:79)",
-   "MID Mainoo (5.5m, 1.3%, GW3:83 GW2:79 GW1:23)",
-   "FWD Šeško (7.0m, 1.7%, GW3:20 GW2:10 GW1:23)"
+   "GKP Lammens (5.0m)",
+   "DEF Dalot (4.9m)",
+   "DEF Maguire (4.9m)",
+   "DEF Martinez (5.0m)",
+   "MID Dorgu (5.8m)",
+   "MID Tielemans (5.9m)",
+   "MID Mainoo (5.5m)",
+   "MID Mbeumo (7.9m)",
+   "MID B.Fernandes (12.0m)",
+   "MID Rashford (7.0m)",
+   "MID Cunha (7.9m)"
   ],
   "NEW": [
    "GKP Horníček (5.0m, 1.3%, GW3:90 GW2:90 GW1:90)",
@@ -548,5 +548,13 @@
    "MID Fernandes (5.8m, 1.0%, GW3:7 GW2:90 GW1:45)",
    "FWD Marmoush (7.0m, 2.3%, GW3:83 GW2:90 GW1:0)"
   ]
+ },
+ "human_edits": {
+  "MUN": "2026-09-13",
+  "MCI": "2026-09-13"
+ },
+ "confirmed": {
+  "MUN": "2026-09-13",
+  "MCI": "2026-09-13"
  }
 }
