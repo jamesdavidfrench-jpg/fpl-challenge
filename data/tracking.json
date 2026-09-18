@@ -733,7 +733,8 @@
     "position": "FWD",
     "projected": 11.878,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 18
    },
    {
     "code": 209036,
@@ -743,7 +744,8 @@
     "position": "DEF",
     "projected": 6.798,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 12
    },
    {
     "code": 466052,
@@ -753,7 +755,8 @@
     "position": "MID",
     "projected": 10.464,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 2
    },
    {
     "code": 465247,
@@ -763,7 +766,8 @@
     "position": "GKP",
     "projected": 5.532,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 4
    },
    {
     "code": 141746,
@@ -773,7 +777,8 @@
     "position": "MID",
     "projected": 11.694,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 4
    },
    {
     "code": 446008,
@@ -783,6 +788,235 @@
     "position": "MID",
     "projected": 10.122,
     "multiplier": 2.0,
+    "low_confidence": false,
+    "actual": 4
+   }
+  ],
+  "actual": 62,
+  "average_entry_score": 64,
+  "highest_score": 110,
+  "entered": 48,
+  "league_name": "Challenge Cup",
+  "league_size": 9,
+  "league_position": 7,
+  "league_points": 0,
+  "league_scores": [
+   {
+    "player_name": "Josh Toulmin",
+    "score": 85
+   },
+   {
+    "player_name": "George Lancaster",
+    "score": 72
+   },
+   {
+    "player_name": "Scott Feather",
+    "score": 65
+   },
+   {
+    "player_name": "Robin Ackroyd",
+    "score": 65
+   },
+   {
+    "player_name": "Jimmy Walker",
+    "score": 62
+   },
+   {
+    "player_name": "James Hirst",
+    "score": 52
+   },
+   {
+    "player_name": "James French",
+    "score": 48
+   },
+   {
+    "player_name": "Billy Boland",
+    "score": 44
+   },
+   {
+    "player_name": "Ian Bullock",
+    "score": 38
+   }
+  ],
+  "league_winner": 85,
+  "league_third": 65,
+  "rival_squads": {
+   "82187": {
+    "player_name": "Jimmy Walker",
+    "picks": [
+     384,
+     418,
+     429,
+     426,
+     399,
+     411
+    ],
+    "captain": 411
+   },
+   "175549": {
+    "player_name": "George Lancaster",
+    "picks": [
+     384,
+     115,
+     426,
+     399,
+     154,
+     411
+    ],
+    "captain": 411
+   },
+   "7232": {
+    "player_name": "Scott Feather",
+    "picks": [
+     1,
+     8,
+     399,
+     154,
+     411,
+     379
+    ],
+    "captain": 411
+   },
+   "75259": {
+    "player_name": "Robin Ackroyd",
+    "picks": [
+     1,
+     356,
+     426,
+     154,
+     411,
+     165
+    ],
+    "captain": 426
+   },
+   "75801": {
+    "player_name": "Josh Toulmin",
+    "picks": [
+     1,
+     391,
+     397,
+     154,
+     411,
+     379
+    ],
+    "captain": 411
+   },
+   "82078": {
+    "player_name": "James French",
+    "picks": [
+     412,
+     388,
+     426,
+     399,
+     427,
+     411
+    ],
+    "captain": 426
+   },
+   "337035": {
+    "player_name": "James Hirst",
+    "picks": [
+     412,
+     389,
+     432,
+     398,
+     426,
+     411
+    ],
+    "captain": 426
+   },
+   "204181": {
+    "player_name": "Billy Boland",
+    "picks": [
+     412,
+     388,
+     399,
+     429,
+     411,
+     401
+    ],
+    "captain": 399
+   },
+   "16955": {
+    "player_name": "Ian Bullock",
+    "picks": [
+     28,
+     389,
+     398,
+     154,
+     628,
+     411
+    ],
+    "captain": 398
+   }
+  }
+ },
+ "5": {
+  "event": 5,
+  "event_name": "Gameweek 5",
+  "twist": "The Shield",
+  "recorded_at": "2026-09-18T12:03:20Z",
+  "projected": 53.43,
+  "captain_code": 17761,
+  "picks": [
+   {
+    "code": 17761,
+    "challenge_id": 229,
+    "name": "Tarkowski",
+    "team": "EVE",
+    "position": "DEF",
+    "projected": 9.424,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 503139,
+    "challenge_id": 69,
+    "name": "Scott",
+    "team": "BOU",
+    "position": "MID",
+    "projected": 7.933,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 437499,
+    "challenge_id": 200,
+    "name": "Lacroix",
+    "team": "CHE",
+    "position": "DEF",
+    "projected": 8.58,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 432720,
+    "challenge_id": 385,
+    "name": "Trafford",
+    "team": "LEE",
+    "position": "GKP",
+    "projected": 3.276,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 223094,
+    "challenge_id": 411,
+    "name": "Haaland",
+    "team": "MCI",
+    "position": "FWD",
+    "projected": 7.09,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 141746,
+    "challenge_id": 426,
+    "name": "B.Fernandes",
+    "team": "MUN",
+    "position": "MID",
+    "projected": 7.705,
+    "multiplier": 1.0,
     "low_confidence": false
    }
   ]

@@ -1,0 +1,13 @@
+{
+  "event": 5,
+  "name": "The Shield",
+  "description": "Defensive contributions are worth 10 points instead of 2. One player per club, six players, unlimited budget.",
+  "player_multipliers": [],
+  "scoring_multipliers": {},
+  "scoring_overrides": {
+    "defensive_contribution": {"DEF": 10, "MID": 10, "FWD": 10, "GKP": 0}
+  },
+  "_scoring_note": "Restates the points only. The bar for earning them is unchanged, because neither source mentions it: 10 defensive actions for defenders, 12 for midfielders and forwards. Keepers stay at 0 because they never earn defensive contribution in FPL, and base_scoring already has GKP 0.",
+  "source": "https://fplchallenge.premierleague.com/ home page, read 2026-09-18: \"Gameweek 5 Challenge - The Shield - Defensive Contributions score 10 points. One player per club.\" Same challenge in https://www.premierleague.com/en/news/4683622/fpl-challenge-is-live-for-202627-see-the-first-five-challenges: \"defensive contributions are worth 10 points, rather than the usual two per player.\" The API confirms the limit: event 5 overrides.rules.squad_team_limit = 1, released = true, overrides.scoring empty.",
+  "verified_on": "2026-09-18"
+}
