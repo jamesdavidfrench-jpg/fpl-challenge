@@ -117,7 +117,7 @@ def build(verbose=True):
     # cannot tell a regular who was just dropped from one who is still
     # playing. The starters draft weights these by recency.
     finished = sorted(e["id"] for e in main["events"] if e.get("finished"))
-    gw_minutes, gw_starts = {}, {}
+    gw_minutes, gw_starts, gw_stats = {}, {}, {}
     if finished and verbose:
         print(f"Fetching per-gameweek minutes for GW{finished[0]}-{finished[-1]}...")
     for gw in finished:
@@ -133,6 +133,16 @@ def build(verbose=True):
             st = el.get("stats") or {}
             gw_minutes.setdefault(el["id"], {})[str(gw)] = st.get("minutes", 0)
             gw_starts.setdefault(el["id"], {})[str(gw)] = st.get("starts", 0)
+            # The counts the scoring rates are built from, so this season can
+            # be blended into them (fpl_solve.THIS_SEASON_PRIOR_MATCHES).
+            if st.get("minutes", 0) > 0:
+                gw_stats.setdefault(el["id"], {})[str(gw)] = {
+                    "dc": st.get("defensive_contribution", 0),
+                    "xg": float(st.get("expected_goals") or 0),
+                    "xa": float(st.get("expected_assists") or 0),
+                    "saves": st.get("saves", 0),
+                    "bonus": st.get("bonus", 0),
+                }
 
     # Only players who could actually be picked are worth pulling history for.
     selectable = [p for p in chal["elements"] if p.get("can_select")]
@@ -180,6 +190,9 @@ def build(verbose=True):
                 # read newest-first. Missing when the live feed was unreachable.
                 "gw_minutes": gw_minutes.get(m.get("id"), {}) if finished else None,
                 "gw_starts": gw_starts.get(m.get("id"), {}) if finished else None,
+                # {gameweek: {dc, xg, xa, saves, bonus}}, only for gameweeks he
+                # played in. Missing when the live feed was unreachable.
+                "gw_stats": gw_stats.get(m.get("id"), {}) if finished else None,
                 "total_points": p.get("total_points", 0),
                 # Ownership comes from the main game, which is live and priced
                 # by a few million managers. The Challenge copy reads 0.0 before

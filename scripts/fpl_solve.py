@@ -253,6 +253,15 @@ def _rates_from_history(p):
             total("assists"), total("expected_assists"), minutes,
             XA_SCALE.get(pos, 1.0), ASSIST_PRIOR_STRENGTH.get(pos),
         )
+        # How many goals and assists he makes of each expected one. This
+        # season's expected goals and assists are blended in on the same scale
+        # by _blend_this_season.
+        xg90 = total("expected_goals") / minutes * 90 if minutes else 0.0
+        xa90 = total("expected_assists") / minutes * 90 if minutes else 0.0
+        goal_conv = goals / xg90 if xg90 > 0 else None
+        assist_conv = assists / xa90 if xa90 > 0 else None
+    else:
+        goal_conv = assist_conv = None
 
     return {
         "goals": goals,
@@ -261,7 +270,81 @@ def _rates_from_history(p):
         "bonus": per90("bonus"),
         "dc": dc,
         "minutes_share": minutes_share,
+        "goal_conv": goal_conv,
+        "assist_conv": assist_conv,
     }
+
+
+# This season's numbers are blended into every per-90 rate. The past counts as
+# this many full matches of evidence and each match played this season adds
+# one, so this season's share grows every week without anyone touching it:
+# after 4 full matches it is a third, after 16 two-thirds, after 32 four-fifths.
+#
+# Fitted 2026-09-18 by predicting each player's next match from the matches
+# before it, GW2-GW4, for 438-501 player-matches. Error in the per-90 rate:
+#                          past only   this only   best mix    best K
+#   defensive actions        11.31       22.13      11.08       8
+#   bonus                     0.697       1.013      0.690      8-12
+#   expected goals            0.062       0.100      0.062      8-40, flat
+#   expected assists          0.020       0.040      0.020      8-40, flat
+#   saves (44 only)           3.79        5.32       3.93 at 8  past only
+# So after three matches this season adds a little for defensive actions and
+# bonus and nothing measurable yet for the rest; 8 is used for all of them
+# because it is best where it matters and costs nothing measurable elsewhere.
+# Re-fit as the season fills in - the answer should move.
+PAST_SEASONS_AS_MATCHES = 8
+
+# A player with no measured defensive-action rate falls back to a flat guess by
+# position, which is worth much less. Fitted the same way on 101 player-matches
+# with no Premier League past: error 22.50 on the guess alone, 22.49 on this
+# season alone, 16.11 counting the guess as half a match and 16.35 as one.
+GUESSED_DC_AS_MATCHES = 1
+
+
+def _blend_this_season(rates, p, low_conf):
+    """Blend this season's per-match numbers into the rates from the past."""
+    gs = p.get("gw_stats")
+    gm = p.get("gw_minutes") or {}
+    if not gs:
+        return rates
+    played = sum(gm.get(gw, 0) for gw in gs) / 90.0
+    if played <= 0:
+        return rates
+    tot = {k: sum(v.get(k, 0) for v in gs.values())
+           for k in ("dc", "xg", "xa", "saves", "bonus")}
+    pos = p["position"]
+    k = PAST_SEASONS_AS_MATCHES
+
+    def mix(this_total, past_rate, strength):
+        return (this_total + strength * past_rate) / (played + strength)
+
+    out = dict(rates)
+    goal_conv = rates.get("goal_conv") or XG_SCALE.get(pos, 1.0)
+    assist_conv = rates.get("assist_conv") or XA_SCALE.get(pos, 1.0)
+    out["goals"] = mix(goal_conv * tot["xg"], rates["goals"], k)
+    out["assists"] = mix(assist_conv * tot["xa"], rates["assists"], k)
+    out["saves"] = mix(tot["saves"], rates["saves"], k)
+    out["bonus"] = mix(tot["bonus"], rates["bonus"], k)
+    if pos != POS_ID["GKP"]:
+        measured = rates.get("dc") is not None and not low_conf
+        past_dc = rates["dc"] if rates.get("dc") is not None else DC_PRIOR.get(pos, 0.0)
+        out["dc"] = mix(tot["dc"], past_dc, k if measured else GUESSED_DC_AS_MATCHES)
+    out["this_season_matches"] = round(played, 1)
+    return out
+
+
+def scoring_rates(p):
+    """Per-90 rates: past seasons, or a price guess without them, with this
+    season blended in. Returns (rates, low_conf), where low_conf means no
+    Premier League record before this season.
+
+    Shared with fpl_ceiling.player_rates so the two cannot drift apart.
+    """
+    rates = _rates_from_history(p)
+    low_conf = rates is None
+    if low_conf:
+        rates = _price_prior(p)
+    return _blend_this_season(rates, p, low_conf), low_conf
 
 
 # Goals conceded costs a point for every second goal let in during a match.
@@ -549,11 +632,7 @@ def project(data, scoring, starters=None):
     out = []
     for p in data["players"]:
         avail = _availability(p)
-        rates = _rates_from_history(p)
-        low_conf = False
-        if rates is None:
-            rates = _price_prior(p)
-            low_conf = True
+        rates, low_conf = scoring_rates(p)
 
         # A named starter plays more of this match than his season-long record
         # suggests. minutes_share is a share of 38 games, so a player who spent
@@ -630,6 +709,7 @@ def project(data, scoring, starters=None):
                 "minutes_share": round(rates["minutes_share"], 3),
                 "history_minutes_share": round(history_share, 3),
                 "minutes_from_season": from_season,
+                "this_season_matches": rates.get("this_season_matches", 0.0),
             }
         )
 
@@ -1157,7 +1237,12 @@ def reason(p, con, twist_name):
     elif p.get("depth_rank"):
         bits.append(f"{_ordinal(p['depth_rank'])} choice at his club, may not start")
     if p["low_confidence"]:
-        bits.append("no PL history, price-based estimate")
+        n = p.get("this_season_matches") or 0
+        if n >= 1:
+            bits.append(f"no PL record before this season, rates rest on "
+                        f"{n:.0f} match{'' if round(n) == 1 else 'es'} of it")
+        else:
+            bits.append("no PL history, price-based estimate")
     if p.get("available", 1) < 1:
         bits.append(f"{int(p['available'] * 100)}% fit")
     if p.get("penalties_order") == 1:

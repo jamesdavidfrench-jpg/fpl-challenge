@@ -269,8 +269,8 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   just over it slightly overstated. And the rate is drawn only from 2024/25
   onward, because the stat did not exist before then and earlier seasons report
   zero - never let those zeros into the average, or every defender's rate
-  halves. Replace with real per-match counts from `event/<n>/live/` once a few
-  gameweeks of 2026/27 exist.
+  halves. This season's real per-match counts are now blended in - see the
+  next item but one.
 - **Goals come from expected goals scaled by how well the player converts, and
   how much his own record counts is measured, not chosen.** It used to be a flat
   70/30 blend, which trusted a half-season exactly as much as six full ones.
@@ -319,8 +319,25 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   price-based estimate. This matters most in gameweeks that double new
   signings, which is exactly when it is least reliable. These picks are flagged
   `no PL history, price-based estimate` - treat them as lower confidence.
-- **Early season has no current-season data at all.** Projections lean on prior
-  seasons until roughly GW5-6.
+- **This season's numbers are blended into every scoring rate, and their weight
+  grows each week.** Added 2026-09-18. Defensive actions, expected goals,
+  expected assists, saves and bonus from each finished gameweek (`gw_stats` in
+  `players.json`) are mixed with the past-season rate. The past counts as 8
+  full matches of evidence and each match played this season adds one: this
+  season is a third of the rate after 4 matches, half after 8, two-thirds after
+  16. A player with no measured defensive-action rate has only a flat guess by
+  position to fall back on, so that guess counts as 1 match instead of 8.
+
+  Fitted by predicting each player's next match from the ones before it, GW2 to
+  GW4. After three matches this season adds a little for defensive actions and
+  bonus, and nothing measurable yet for expected goals, assists or saves. For
+  new signings' defensive actions it cut the error by 28% against the flat guess.
+  End to end, projections tracked actual points the same in GW3 and slightly
+  better in GW4. The fitted numbers are above `PAST_SEASONS_AS_MATCHES` in
+  `fpl_solve.py`. Re-fit as the season fills in; the answer should move.
+
+  Not fitted separately: goals and assists for players with no Premier League
+  past. They use 8, like everyone else.
 - **Predicting who plays matters more than predicting how many points.** In GW1,
   the 22 of the model's top 30 who started were projected 182 and scored 173 -
   nearly exact. The 8 who did not start were projected 67 and scored 12. That is

@@ -60,10 +60,7 @@ def player_rates(p, xi, confirmed_teams, data=None):
     playing-time rule itself is shared (S.playing_share), and the validate()
     check below is what keeps the rest honest.
     """
-    rates = S._rates_from_history(p)
-    low_conf = rates is None
-    if low_conf:
-        rates = S._price_prior(p)
+    rates, low_conf = S.scoring_rates(p)
 
     history_share = rates["minutes_share"]
     confirmed = p["code"] in xi
