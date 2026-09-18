@@ -385,6 +385,71 @@ XI_OWNERSHIP_WARN = 3.0
 
 STARTER_MINUTES_SHARE = 0.92
 
+# Once this season has finished gameweeks, an outfield player's playing time
+# comes from his minutes rather than from the drafted eleven and ownership. His
+# recency-weighted share of this season's minutes (fpl_starters.season_share)
+# is blended with his past seasons, and this season's weight is n / (n + this),
+# where n is the number of finished gameweeks. At 1 that is 80% this season by
+# GW5 and 91% by GW10, so a good player from last season who has started slowly
+# is not written off - the part James asked to keep on 2026-09-18.
+#
+# Measured before adopting, predicting each player's share of GW3 and GW4 from
+# the data as it stood before the week. Average miss in share of a match:
+#   ownership and past seasons (the rule this replaced)  0.268  0.275
+#   this season only                                     0.179  0.197
+#   this blend at 1                                      0.208  0.211
+#   this blend at 2                                      0.228  0.225
+# This season alone was more accurate still. The blend gives up a little of
+# that to keep past seasons in play. Points picked were within noise across
+# all of them over two weeks, so re-check once there are more.
+#
+# Keepers are left out on purpose: exactly one plays, so a new first choice
+# has almost no minutes to go on and the eleven still decides.
+SEASON_PRIOR_GAMES = 1
+
+
+def _season_minutes_share(p, data):
+    """This season's recency-weighted share of minutes, and how many gameweeks
+    it rests on. None before any gameweek has finished."""
+    import fpl_starters  # it imports this module, so it cannot sit at the top
+    n = fpl_starters.finished_gameweeks(data)
+    if n <= 0:
+        return None
+    return fpl_starters.season_share(p, n, data), n
+
+
+def playing_share(p, history_share, low_conf, named, confirmed_teams, data):
+    """Share of this match the player is expected to play.
+
+    Returns (share, from_season). from_season is True when the share came from
+    this season's minutes, which tells _demote_squad_players not to discount
+    the player a second time for being left out of the eleven.
+
+    Shared with fpl_ceiling.player_rates so the two cannot drift apart.
+    """
+    if p["team"] in confirmed_teams:
+        # Team news, not a draft. A published sheet answers the question
+        # outright. Players left off it are made substitutes in
+        # _demote_squad_players.
+        return (STARTER_MINUTES_SHARE if named else history_share), False
+    if p["position"] != POS_ID["GKP"] and data is not None:
+        season = _season_minutes_share(p, data)
+        if season is not None:
+            frac, n = season
+            now = STARTER_MINUTES_SHARE * frac
+            if low_conf:
+                # No Premier League past, so there is nothing to blend with.
+                return now, True
+            w = n / (n + SEASON_PRIOR_GAMES)
+            return w * now + (1 - w) * min(history_share, STARTER_MINUTES_SHARE), True
+    if named:
+        # Pre-season, and keepers. Ownership can lift a named player but never
+        # push him below his own record: it follows attacking returns rather
+        # than starts, so holding midfielders and defensive full-backs who play
+        # every week are barely owned.
+        return max(history_share, start_share(p.get("owned"), True)), False
+    return history_share, False
+
 
 def start_share(owned, named_in_xi):
     """Share of a match a player is expected to play, given how many managers own him.
@@ -507,21 +572,15 @@ def project(data, scoring, starters=None):
         # and are barely owned. Lowering as well as raising scored the same
         # squad in GW1 and ranked slightly better, but it would have punished
         # exactly those players, so it is not worth the trade.
+        #
+        # Once this season has minutes, outfield players take their playing time
+        # from those instead - see SEASON_PRIOR_GAMES.
         history_share = rates["minutes_share"]
         confirmed_starter = p["code"] in xi
-        if confirmed_starter:
-            rates = dict(rates)
-            if p["team"] in confirmed_teams:
-                # Team news, not a draft. Ownership is only ever a proxy for
-                # whether the market expects a start, and a published sheet
-                # answers that outright, so the proxy has nothing left to add.
-                # This is the whole value of asking for line-ups: it is the one
-                # input that removes a guess rather than sharpening it.
-                rates["minutes_share"] = STARTER_MINUTES_SHARE
-            else:
-                rates["minutes_share"] = max(
-                    history_share, start_share(p.get("owned"), True)
-                )
+        rates = dict(rates)
+        rates["minutes_share"], from_season = playing_share(
+            p, history_share, low_conf, confirmed_starter, confirmed_teams, data
+        )
 
         games = by_team.get(p["team_id"], [])
         total, notes = 0.0, []
@@ -570,6 +629,7 @@ def project(data, scoring, starters=None):
                 "from_team_sheet": p["team"] in confirmed_teams,
                 "minutes_share": round(rates["minutes_share"], 3),
                 "history_minutes_share": round(history_share, 3),
+                "minutes_from_season": from_season,
             }
         )
 
@@ -692,6 +752,11 @@ def _demote_squad_players(players, starters=None):
                 p["not_expected_to_start"] = True
                 p["backup_keeper"] = True
                 continue
+            # His playing time already comes from this season's minutes, which
+            # are what the eleven was drafted from. Discounting him again for
+            # being left out would count the same evidence twice.
+            if p.get("minutes_from_season"):
+                continue
             # Outfield is not binary. Being left out of a drafted eleven is
             # weak evidence, and it gets weaker the more managers own the
             # player - at some point it stops meaning "benched" and starts
@@ -735,6 +800,9 @@ def _demote_squad_players(players, starters=None):
         # No history means the projection already rests on a cautious price
         # prior, so there is nothing inflated to correct.
         if p["low_confidence"]:
+            continue
+        # This season's minutes already show whether he plays for his new club.
+        if p.get("minutes_from_season"):
             continue
         if (p.get("owned") or 0.0) >= UNRATED_OWNERSHIP:
             continue
@@ -1074,7 +1142,13 @@ def reason(p, con, twist_name):
     # that did not start was named in the expected eleven and owned by under 3%
     # of managers. The projection already damps these; this is so the damping is
     # not the only thing standing between a hand-drafted guess and the team.
-    if (p.get("confirmed_starter") and not p.get("from_team_sheet")
+    # Once playing time comes from this season's minutes, ownership is no longer
+    # the check; say instead when the minutes themselves are patchy.
+    if p.get("minutes_from_season"):
+        if (p.get("minutes_share") or 0.0) < 0.7:
+            bits.append(f"expected to play {p['minutes_share']:.0%} of the match "
+                        f"on recent minutes - check the team sheet")
+    elif (p.get("confirmed_starter") and not p.get("from_team_sheet")
             and (p.get("owned") or 0.0) < XI_OWNERSHIP_WARN):
         bits.append(f"only {p.get('owned') or 0:.1f}% owned in main FPL - the market does "
                     f"not expect him to start, check this one")

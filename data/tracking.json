@@ -955,8 +955,8 @@
   "event": 5,
   "event_name": "Gameweek 5",
   "twist": "The Shield",
-  "recorded_at": "2026-09-18T12:03:20Z",
-  "projected": 53.43,
+  "recorded_at": "2026-09-18T12:23:18Z",
+  "projected": 52.5,
   "captain_code": 17761,
   "picks": [
    {
@@ -965,27 +965,7 @@
     "name": "Tarkowski",
     "team": "EVE",
     "position": "DEF",
-    "projected": 9.424,
-    "multiplier": 1.0,
-    "low_confidence": false
-   },
-   {
-    "code": 503139,
-    "challenge_id": 69,
-    "name": "Scott",
-    "team": "BOU",
-    "position": "MID",
-    "projected": 7.933,
-    "multiplier": 1.0,
-    "low_confidence": false
-   },
-   {
-    "code": 437499,
-    "challenge_id": 200,
-    "name": "Lacroix",
-    "team": "CHE",
-    "position": "DEF",
-    "projected": 8.58,
+    "projected": 9.192,
     "multiplier": 1.0,
     "low_confidence": false
    },
@@ -1005,7 +985,7 @@
     "name": "Haaland",
     "team": "MCI",
     "position": "FWD",
-    "projected": 7.09,
+    "projected": 6.937,
     "multiplier": 1.0,
     "low_confidence": false
    },
@@ -1015,7 +995,27 @@
     "name": "B.Fernandes",
     "team": "MUN",
     "position": "MID",
-    "projected": 7.705,
+    "projected": 7.663,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 220237,
+    "challenge_id": 447,
+    "name": "Botman",
+    "team": "NEW",
+    "position": "DEF",
+    "projected": 8.249,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 223827,
+    "challenge_id": 532,
+    "name": "Ballard",
+    "team": "SUN",
+    "position": "DEF",
+    "projected": 7.989,
     "multiplier": 1.0,
     "low_confidence": false
    }

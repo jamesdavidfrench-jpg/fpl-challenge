@@ -52,12 +52,13 @@ BONUS_WEIGHTS = [(1, 0.5), (2, 0.3), (3, 0.2)]
 BONUS_MEAN = sum(v * w for v, w in BONUS_WEIGHTS)
 
 
-def player_rates(p, xi, confirmed_teams):
+def player_rates(p, xi, confirmed_teams, data=None):
     """The same rates fpl_solve.project() uses, including its minutes logic.
 
     Kept deliberately parallel to project() rather than shared, because
     project() folds everything into one number and this needs the parts. The
-    validate() check below is what keeps the two honest.
+    playing-time rule itself is shared (S.playing_share), and the validate()
+    check below is what keeps the rest honest.
     """
     rates = S._rates_from_history(p)
     low_conf = rates is None
@@ -66,14 +67,10 @@ def player_rates(p, xi, confirmed_teams):
 
     history_share = rates["minutes_share"]
     confirmed = p["code"] in xi
-    if confirmed:
-        rates = dict(rates)
-        if p["team"] in confirmed_teams:
-            rates["minutes_share"] = S.STARTER_MINUTES_SHARE
-        else:
-            rates["minutes_share"] = max(
-                history_share, S.start_share(p.get("owned"), True)
-            )
+    rates = dict(rates)
+    rates["minutes_share"], _ = S.playing_share(
+        p, history_share, low_conf, confirmed, confirmed_teams, data
+    )
     return rates, low_conf, confirmed
 
 
@@ -138,7 +135,7 @@ def build_pool(data, twist, starters, target_teams, scoring=None):
         diff = f["home_diff"] if is_home else f["away_diff"]
         atk = S.ATTACK_BY_DIFF.get(diff, 1.0) * (S.HOME_ATTACK_BOOST if is_home else 1.0)
 
-        rates, low_conf, _ = player_rates(p, xi, confirmed_teams)
+        rates, low_conf, _ = player_rates(p, xi, confirmed_teams, data)
         pos = p["position"]
         dc_rate = rates.get("dc")
         if dc_rate is None:
@@ -200,7 +197,13 @@ def _bonus_plan(pl):
         p_cs = S.clean_sheet_prob(pl["opp_diff"])
         p_ret = 1.0 - (1.0 - p_ret) * (1.0 - p_cs)
 
-    mean = pl["bonus_rate"]
+    # project() scales bonus by the share of the match he plays, like every
+    # other part of the projection, so the mean to hit is the same. Leaving out
+    # p_play here paid a full match's bonus to anyone who got on at all. That
+    # was nearly invisible while every named player was given at least 41% of
+    # the match, and overstated Šeško by 60% once playing time came from this
+    # season's minutes and put him at 26%.
+    mean = pl["bonus_rate"] * p_play
     if p_ret <= 0:
         return 0.0, mean / p_play
 

@@ -99,9 +99,30 @@ python scripts/fpl_track.py record
 
 ## Starting elevens
 
-`data/starters.json` holds the expected eleven for each club. When it exists the
-picker trusts it completely and skips its own guesswork, so this is the main
-lever for improving picks.
+`data/starters.json` holds the expected eleven for each club. What it decides
+changed on 2026-09-18:
+
+- **Outfield players, once a gameweek has finished:** playing time comes from
+  minutes, not from the file. Each player's recency-weighted share of this
+  season's minutes is blended with his past seasons. This season counts
+  n / (n + 1) after n finished gameweeks - 80% at GW5 - so a good player from
+  last season who has started slowly still counts for something. Being left out
+  of the eleven no longer marks an outfield player down on top of that, because
+  the eleven is drafted from the same minutes.
+- **Keepers, and anyone before GW1:** the file still decides. Exactly one keeper
+  plays, so a new first choice has too few minutes to go on.
+- **Team sheets (`--confirmed`):** the file decides outright, for everyone.
+- **`fpl_ceiling.py`** still only simulates players named in the file.
+
+Why: predicting each player's share of GW3 and GW4 from the data as it stood
+before each week, the new rule missed by 0.223 and 0.227 of a match on average,
+against 0.251 and 0.261 for the old one. It left out 34 and 30 players who went
+on to play an hour, against 45 and 45. The points the picked six scored were a
+wash: 5 fewer in GW3, and in GW4 the players scored 4 more but a captain coin
+toss (Fernandes over Haaland, 0.2 apart in projection) cost 14. Using this
+season alone was more accurate still (0.179 and 0.197); the blend gives a little
+of that up on purpose. Re-check once more gameweeks exist. The numbers and
+the tested alternatives are above `SEASON_PRIOR_GAMES` in `fpl_solve.py`.
 
 ```
 python scripts/fpl_starters.py            # draft all 20, flag the shaky calls
@@ -341,7 +362,10 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   much; the bonus cap over-paying attackers by about a fifth; and a team's
   scoring rate being read from its own fixture difficulty rather than its
   opponent's. Keep the check - it is the only thing standing between this script
-  and a confidently wrong answer.
+  and a confidently wrong answer. It caught a fourth on 2026-09-18: bonus was
+  paid at a full match's rate to anyone who got on the pitch, which surfaced as
+  a 37% correction on Šeško once playing time came from this season's minutes.
+  Fixed, the largest correction fell to 3.5%.
 
   **It does not always disagree with the average, and when it agrees that is a
   result rather than a wasted run.** GW4 was the first case: the best squad by
