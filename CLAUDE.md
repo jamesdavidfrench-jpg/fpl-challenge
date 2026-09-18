@@ -73,3 +73,6 @@ worst at the lowest ownership. Prefer observed minutes wherever they exist.
 ## Replies land on a phone
 
 The squad, what changed, what to do next. Short sentences. Not an essay.
+
+Show every six as a team sheet: formation first, then one line per player
+starting with his position, GKP to FWD. The exact layout is in SKILL.md, step 4.

@@ -62,6 +62,14 @@ python scripts/fpl_track.py record
 4. **Solve.** Run `fpl_solve.py`. Show the recommended squad plus one or two
    alternatives. Keep the one-line reason per pick that the script produces.
 
+   **Every time a six is shown, lay it out like a team sheet** - James asked
+   for this on 2026-09-18 so he can enter it straight into the game. Start with
+   the formation as the game's picker names it (DEF-MID-FWD, keeper not
+   counted, e.g. 3-1-1). Then one line per player in the order GKP, DEF, MID,
+   FWD, each starting with the position: position, name, (C) for the captain,
+   club, projected points, kickoff and opponent. For an alternative, give its
+   formation too, even when it matches.
+
 5. **Run the ceiling squad too.** Run `fpl_ceiling.py`. It answers a different
    question - not which squad scores most on average, but which is most likely
    to clear the score that wins James's league. Run it every week, and report
