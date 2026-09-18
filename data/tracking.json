@@ -955,8 +955,8 @@
   "event": 5,
   "event_name": "Gameweek 5",
   "twist": "The Shield",
-  "recorded_at": "2026-09-18T12:31:04Z",
-  "projected": 55.73,
+  "recorded_at": "2026-09-18T12:59:15Z",
+  "projected": 58.18,
   "captain_code": 522047,
   "picks": [
    {
@@ -965,7 +965,7 @@
     "name": "Muharemovi\u0107",
     "team": "LEE",
     "position": "DEF",
-    "projected": 9.415,
+    "projected": 9.91,
     "multiplier": 1.0,
     "low_confidence": true
    },
@@ -975,19 +975,9 @@
     "name": "Scott",
     "team": "BOU",
     "position": "MID",
-    "projected": 8.13,
+    "projected": 8.063,
     "multiplier": 1.0,
     "low_confidence": false
-   },
-   {
-    "code": 570794,
-    "challenge_id": 588,
-    "name": "Khalaili",
-    "team": "CRY",
-    "position": "DEF",
-    "projected": 8.312,
-    "multiplier": 1.0,
-    "low_confidence": true
    },
    {
     "code": 111234,
@@ -995,7 +985,7 @@
     "name": "Pickford",
     "team": "EVE",
     "position": "GKP",
-    "projected": 3.987,
+    "projected": 3.952,
     "multiplier": 1.0,
     "low_confidence": false
    },
@@ -1005,7 +995,7 @@
     "name": "Egan",
     "team": "HUL",
     "position": "DEF",
-    "projected": 9.016,
+    "projected": 9.332,
     "multiplier": 1.0,
     "low_confidence": false
    },
@@ -1015,7 +1005,17 @@
     "name": "Haaland",
     "team": "MCI",
     "position": "FWD",
-    "projected": 7.45,
+    "projected": 7.42,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 575476,
+    "challenge_id": 472,
+    "name": "Murillo",
+    "team": "NFO",
+    "position": "DEF",
+    "projected": 9.591,
     "multiplier": 1.0,
     "low_confidence": false
    }

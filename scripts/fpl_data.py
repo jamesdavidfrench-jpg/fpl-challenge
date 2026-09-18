@@ -134,7 +134,7 @@ def build(verbose=True):
             gw_minutes.setdefault(el["id"], {})[str(gw)] = st.get("minutes", 0)
             gw_starts.setdefault(el["id"], {})[str(gw)] = st.get("starts", 0)
             # The counts the scoring rates are built from, so this season can
-            # be blended into them (fpl_solve.THIS_SEASON_PRIOR_MATCHES).
+            # be blended into them (fpl_solve.PAST_SEASONS_AS_MATCHES).
             if st.get("minutes", 0) > 0:
                 gw_stats.setdefault(el["id"], {})[str(gw)] = {
                     "dc": st.get("defensive_contribution", 0),
@@ -236,6 +236,22 @@ def build(verbose=True):
             }
             for f in fixtures
             if f.get("event") == ev["id"]
+        ],
+        # Every finished match this season with its score. Each club's
+        # strength is its fixture difficulty rating adjusted by these - see
+        # fpl_solve.TEAM_PRIOR_MATCHES.
+        "results": [
+            {
+                "event": f["event"],
+                "home": f["team_h"],
+                "away": f["team_a"],
+                "home_goals": f["team_h_score"],
+                "away_goals": f["team_a_score"],
+                "home_diff": f["team_h_difficulty"],
+                "away_diff": f["team_a_difficulty"],
+            }
+            for f in fixtures
+            if f.get("finished") and f.get("team_h_score") is not None
         ],
         "players": players,
     }

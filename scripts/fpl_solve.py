@@ -54,9 +54,107 @@ HOME_ATTACK_BOOST = 1.08
 CONCEDE_RATE_BY_DIFF = {1: 0.85, 2: 1.05, 3: 1.32, 4: 1.65, 5: 2.05}
 
 
-def clean_sheet_prob(difficulty):
-    """Chance of no goals conceded, from the rate above."""
-    return math.exp(-CONCEDE_RATE_BY_DIFF.get(difficulty, 1.32))
+# How many matches the fixture difficulty rating is worth against this
+# season's goals. A club's attack and defence each start at what its rating
+# implies and move towards what it has actually scored and conceded, with the
+# rating counting as this many matches of evidence - the same shape as the
+# player-rate blend (PAST_SEASONS_AS_MATCHES).
+#
+# The rating on its own is a good start: it is updated weekly and knows home
+# from away. But it only describes the opponent, so a defender's clean sheet
+# chance never saw his own club's defence, and it is coarse - eleven of twenty
+# clubs were a 3 in GW5, and Coventry, who had not scored, shared a 2 with
+# Ipswich scoring 1.75 a game.
+#
+# Fitted 2026-09-18 on the 40 finished matches of GW1-4, predicting each side's
+# goals in a gameweek from the gameweeks before it (60 team-fixtures) and from
+# every other gameweek (80). Loss is Poisson negative log-likelihood per
+# team-fixture; lower is better; the rating alone is the last row.
+#
+#   K (matches)   before-only   every-other
+#   2               1.521         1.491
+#   4               1.496         1.477
+#   6               1.495         1.478
+#   8               1.498         1.482
+#   12              1.504         1.491
+#   rating only     1.535         1.534
+#
+# Clean-sheet Brier says the same (0.196 rating only, 0.170-0.176 at K=2-4).
+# Expected goals as the evidence, alone or averaged with goals, lost to goals
+# at every K: this season's xG runs 6% above actual goals, so it lifts every
+# attack at once. Forty matches is a thin fit - re-fit around GW10, and expect
+# the best K to rise if the weekly rating keeps absorbing form on its own.
+TEAM_PRIOR_MATCHES = 4
+
+
+def team_strengths(data):
+    """Attack and defence multipliers per club, 1.0 meaning "as the rating says".
+
+    attack scales what the club scores, defence scales what it concedes. Each is
+    the club's goals so far against what the rating expected of it in those same
+    fixtures, shrunk towards 1 with TEAM_PRIOR_MATCHES matches' weight.
+    """
+    acc = {}
+    for r in data.get("results") or []:
+        home_exp = CONCEDE_RATE_BY_DIFF.get(r["away_diff"], 1.32)  # what the home side scores
+        away_exp = CONCEDE_RATE_BY_DIFF.get(r["home_diff"], 1.32)
+        for team, scored, exp_for, conceded, exp_against in (
+            (r["home"], r["home_goals"], home_exp, r["away_goals"], away_exp),
+            (r["away"], r["away_goals"], away_exp, r["home_goals"], home_exp),
+        ):
+            o = acc.setdefault(team, {"matches": 0, "for": 0.0, "for_exp": 0.0,
+                                      "against": 0.0, "against_exp": 0.0})
+            o["matches"] += 1
+            o["for"] += scored
+            o["for_exp"] += exp_for
+            o["against"] += conceded
+            o["against_exp"] += exp_against
+    k = TEAM_PRIOR_MATCHES
+    out = {}
+    for team, o in acc.items():
+        n = o["matches"]
+        out[team] = {
+            "attack": (n * o["for"] / o["for_exp"] + k) / (n + k),
+            "defence": (n * o["against"] / o["against_exp"] + k) / (n + k),
+            "matches": n,
+        }
+    return out
+
+
+def fixture_goal_rates(data, strengths=None):
+    """Expected goals for each side of this gameweek's fixtures, and the
+    multiplier each side's attackers get for the defence they face.
+
+    Keyed by (home_id, away_id). The concede penalty, the clean sheet and the
+    ceiling simulation all read these same numbers, so they cannot disagree.
+    """
+    if strengths is None:
+        strengths = team_strengths(data)
+    out = {}
+    for f in data["fixtures"]:
+        h = strengths.get(f["home"]) or {}
+        a = strengths.get(f["away"]) or {}
+        # The rating says what each side is expected to score; the club's own
+        # attack and its opponent's defence adjust it.
+        home_goals = (CONCEDE_RATE_BY_DIFF.get(f["away_diff"], 1.32)
+                      * h.get("attack", 1.0) * a.get("defence", 1.0))
+        away_goals = (CONCEDE_RATE_BY_DIFF.get(f["home_diff"], 1.32)
+                      * a.get("attack", 1.0) * h.get("defence", 1.0))
+        out[(f["home"], f["away"])] = {
+            "home_goals": home_goals,
+            "away_goals": away_goals,
+            # A player's own goal and assist rates already carry his club's
+            # attack, so only the opponent's defence scales them here.
+            "home_attack": (ATTACK_BY_DIFF.get(f["home_diff"], 1.0)
+                            * HOME_ATTACK_BOOST * a.get("defence", 1.0)),
+            "away_attack": ATTACK_BY_DIFF.get(f["away_diff"], 1.0) * h.get("defence", 1.0),
+        }
+    return out
+
+
+def clean_sheet_prob(goals_against):
+    """Chance of no goals conceded, given the opponent's expected goals."""
+    return math.exp(-goals_against)
 
 # Defensive contribution points are awarded once per match for crossing a
 # threshold of defensive actions, not per action. Defenders need 10 clearances,
@@ -620,6 +718,7 @@ def project(data, scoring, starters=None):
     for f in fixtures:
         by_team.setdefault(f["home"], []).append((f, True))
         by_team.setdefault(f["away"], []).append((f, False))
+    goal_rates = fixture_goal_rates(data)
 
     goal_pts = {POS_ID[k]: v for k, v in scoring["goals_scored"].items()}
     cs_pts = {POS_ID[k]: v for k, v in scoring["clean_sheets"].items()}
@@ -664,9 +763,9 @@ def project(data, scoring, starters=None):
         games = by_team.get(p["team_id"], [])
         total, notes = 0.0, []
         for f, is_home in games:
-            diff = f["home_diff"] if is_home else f["away_diff"]
-            atk = ATTACK_BY_DIFF.get(diff, 1.0) * (HOME_ATTACK_BOOST if is_home else 1.0)
-            cs_prob = clean_sheet_prob(diff)
+            fr = goal_rates[(f["home"], f["away"])]
+            atk = fr["home_attack"] if is_home else fr["away_attack"]
+            cs_prob = clean_sheet_prob(fr["away_goals"] if is_home else fr["home_goals"])
 
             pos = p["position"]
             pts = appearance
@@ -1319,10 +1418,22 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--stale-ok", action="store_true",
                     help="solve even if players.json is for a finished gameweek")
+    ap.add_argument("--teams", action="store_true",
+                    help="print each club's attack and defence against its rating")
     args = ap.parse_args()
 
     data = load()
     check_freshness(data, allow_stale=args.stale_ok)
+    if args.teams:
+        names = {p["team_id"]: p["team"] for p in data["players"]}
+        strengths = team_strengths(data)
+        print(f"club strength, 1.00 = as the difficulty rating says "
+              f"(the rating counts as {TEAM_PRIOR_MATCHES} matches)")
+        print("  club  matches  attack  defence")
+        for tid in sorted(strengths, key=lambda t: -strengths[t]["attack"]):
+            s = strengths[tid]
+            print(f"  {names.get(tid, tid):<5} {s['matches']:>6}    {s['attack']:.2f}     {s['defence']:.2f}")
+        print()
     ev = data["event"]
     twist = load_twist(ev["id"])
     con = constraints(data, twist)

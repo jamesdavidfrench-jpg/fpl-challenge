@@ -107,6 +107,7 @@ def build_pool(data, twist, starters, target_teams, scoring=None):
     for f in data["fixtures"]:
         by_team.setdefault(f["home"], []).append((f, True))
         by_team.setdefault(f["away"], []).append((f, False))
+    goal_rates = S.fixture_goal_rates(data)
 
     goal_pts = {S.POS_ID[k]: v for k, v in scoring["goals_scored"].items()}
     cs_pts = {S.POS_ID[k]: v for k, v in scoring["clean_sheets"].items()}
@@ -129,8 +130,8 @@ def build_pool(data, twist, starters, target_teams, scoring=None):
         if len(games) != 1:
             continue
         f, is_home = games[0]
-        diff = f["home_diff"] if is_home else f["away_diff"]
-        atk = S.ATTACK_BY_DIFF.get(diff, 1.0) * (S.HOME_ATTACK_BOOST if is_home else 1.0)
+        fr = goal_rates[(f["home"], f["away"])]
+        atk = fr["home_attack"] if is_home else fr["away_attack"]
 
         rates, low_conf, _ = player_rates(p, xi, confirmed_teams, data)
         pos = p["position"]
@@ -152,13 +153,14 @@ def build_pool(data, twist, starters, target_teams, scoring=None):
             "availability": S._availability(p),
             "low_confidence": low_conf,
             "is_home": is_home,
-            "opp_diff": diff,
             "opp_team_id": f["away"] if is_home else f["home"],
-            # The difficulty the opponent faces, which is what this team is
-            # expected to score. Equal to opp_diff only when the two sides are
-            # rated the same, as they happen to be in the GW4 derby - so getting
-            # this wrong stays invisible until a lopsided fixture.
-            "opp_own_diff": f["away_diff"] if is_home else f["home_diff"],
+            # Both from fpl_solve.fixture_goal_rates, so the simulation's
+            # scorelines and the projection's clean sheets come from the same
+            # numbers. Reading a side's own figure for the other stayed
+            # invisible until a lopsided fixture - the GW4 derby had both
+            # sides rated the same.
+            "goals_for": fr["home_goals"] if is_home else fr["away_goals"],
+            "goals_against": fr["away_goals"] if is_home else fr["home_goals"],
             "goal_rate": rates["goals"] * atk,
             "assist_rate": rates["assists"] * atk,
             "save_rate": rates["saves"],
@@ -191,7 +193,7 @@ def _bonus_plan(pl):
     p_ret = 1.0 - math.exp(-lam) if lam > 0 else 0.0
     if pl["position"] in (1, 2):
         # Keepers and defenders pick up bonus for clean sheets too.
-        p_cs = S.clean_sheet_prob(pl["opp_diff"])
+        p_cs = S.clean_sheet_prob(pl["goals_against"])
         p_ret = 1.0 - (1.0 - p_ret) * (1.0 - p_cs)
 
     # project() scales bonus by the share of the match he plays, like every
@@ -240,18 +242,16 @@ def simulate(pool, trials, seed=7):
     for i, pl in enumerate(pool):
         by_team.setdefault(pl["team_id"], []).append(i)
 
-    # Each team's expected goals is what its opponent is expected to concede,
-    # which is the same number fpl_solve derives its clean sheet odds from. Both
-    # sides of the squad therefore read one draw, not two.
-    # What a team scores is what its opponent is expected to concede, so this
-    # reads the opponent's difficulty, not its own. That keeps every clean sheet
-    # in the simulation equal to fpl_solve's clean_sheet_prob for the same
-    # fixture, which is what makes the two models agree.
+    # Each team's expected goals is the same number fpl_solve derives its clean
+    # sheet odds and concede penalty from - fixture_goal_rates(), the rating
+    # adjusted by both clubs' goals this season. Both sides of the squad
+    # therefore read one draw, not two, and every clean sheet in the simulation
+    # matches fpl_solve's clean_sheet_prob for the same fixture.
     #
     # Do not clamp this to the players' summed goal rates. Doing that made both
     # keepers concede more than the model says they should.
     team_lambda = {
-        tid: S.CONCEDE_RATE_BY_DIFF.get(pool[idxs[0]]["opp_own_diff"], 1.32)
+        tid: pool[idxs[0]]["goals_for"]
         for tid, idxs in by_team.items()
     }
 
@@ -328,9 +328,7 @@ def simulate(pool, trials, seed=7):
             if opp in goals_for:
                 conceded = goals_for[opp]
             else:
-                conceded = _poisson(
-                    rng, S.CONCEDE_RATE_BY_DIFF.get(pool[by_team[tid][0]]["opp_diff"], 1.32)
-                )
+                conceded = _poisson(rng, pool[by_team[tid][0]]["goals_against"])
             cs = conceded == 0
             for i in by_team[tid]:
                 pl = pool[i]

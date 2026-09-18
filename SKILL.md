@@ -311,15 +311,37 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   twenty matches loses nothing, where the season total suggests ten. The
   expectation is taken over a per-match Poisson draw instead.
 - **Clean sheets and conceding come from one number.** `CONCEDE_RATE_BY_DIFF`
-  gives expected goals conceded per fixture and the clean sheet probability is
-  derived from it, so the two cannot contradict each other. It is anchored on
-  last season: keepers and defenders conceded 1.30 goals per 90 actual and 1.34
-  expected, and the model's average fixture is 1.32, giving a clean sheet rate of
-  0.267 against a real 0.274. Re-anchor it if the league's scoring rate shifts.
-- **Team strength is not used** - only fixture difficulty. The API's team
-  strength fields are all zero pre-season, so a good defence and a bad one at the
-  same difficulty rating look identical. This is the biggest remaining gap in the
-  defensive side of the model.
+  turns the opponent's difficulty rating into expected goals conceded per
+  fixture, and the clean sheet probability is derived from it, so the two
+  cannot contradict each other. It is anchored on last season: keepers and
+  defenders conceded 1.30 goals per 90 actual and 1.34 expected, and the
+  model's average fixture is 1.32, giving a clean sheet rate of 0.267 against a
+  real 0.274. Re-anchor it if the league's scoring rate shifts. After four
+  gameweeks of 2026/27 it was running at 1.43, half a standard error above, so
+  not yet.
+- **Club strength is the difficulty rating adjusted by this season's goals.**
+  The rating does most of the work. It is updated weekly and knows home from
+  away. But it only describes the opponent, so before GW5 a defender's clean
+  sheet chance never saw his own club's defence: Chelsea conceding two a game
+  looked the same as Arsenal conceding none. It is also coarse. Eleven of
+  twenty clubs were a 3 in GW5, and Coventry, who had not scored, shared a 2
+  with Ipswich scoring 1.75 a game. The API's own attack and defence strength
+  fields are all zero.
+
+  So each club now carries an attack and a defence multiplier: its goals for
+  and against so far, against what the rating expected in those same fixtures,
+  shrunk towards the rating with `TEAM_PRIOR_MATCHES` (4) matches' weight. A
+  fixture's expected goals is the rating's figure times the scorer's attack
+  times the conceder's defence. `fixture_goal_rates()` is the one place both
+  scripts read it from, so the solver and the ceiling cannot disagree. Players'
+  own goal rates only take the opponent's defence, because a player's rate
+  already carries his club's attack.
+
+  Fitted on GW1-4, 40 matches: the rating alone predicted goals worse than
+  every blend tried, and goals beat expected goals as the evidence because
+  this season's xG runs 6% above actual. The fit table sits above the
+  constant. Re-fit around GW10. `python scripts/fpl_solve.py --teams` prints
+  every club's multipliers.
 - **Cards, own goals, penalty saves and misses are unmodelled**, as is
   `short_play` - everyone who plays is credited the full appearance points, so
   substitutes are slightly overstated.
