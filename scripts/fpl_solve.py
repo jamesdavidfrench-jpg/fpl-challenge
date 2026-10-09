@@ -156,6 +156,22 @@ def clean_sheet_prob(goals_against):
     """Chance of no goals conceded, given the opponent's expected goals."""
     return math.exp(-goals_against)
 
+
+def win_prob(goals_for, goals_against, cap=12):
+    """Chance of scoring more than the opponent, with both sides Poisson."""
+    pf = [math.exp(-goals_for) * goals_for ** k / math.factorial(k) for k in range(cap)]
+    pa = [math.exp(-goals_against) * goals_against ** k / math.factorial(k) for k in range(cap)]
+    return sum(pf[i] * pa[j] for i in range(cap) for j in range(i))
+
+
+def winning_goal_pts(scoring, pos):
+    """Points for a winning goal. The API holds it as a plain number, but a
+    twist may restate it per position like the other stats."""
+    v = scoring.get("winning_goals") or 0
+    if isinstance(v, dict):
+        return v.get(POS_NAME[pos], 0)
+    return v
+
 # Defensive contribution points are awarded once per match for crossing a
 # threshold of defensive actions, not per action. Defenders need 10 clearances,
 # blocks, interceptions and tackles; midfielders and forwards need 12, with
@@ -728,6 +744,18 @@ def project(data, scoring, starters=None):
     dc_pts = {POS_ID[k]: v for k, v in (scoring.get("defensive_contribution") or {}).items()}
     concede_pts = {POS_ID[k]: v for k, v in (scoring.get("goals_conceded") or {}).items()}
 
+    # Each eleven's summed goal rates, for sharing out winning goals. They can
+    # run well past the team's own expected goals - United's came to 2.82
+    # against 1.81 in GW6 - and a win has only one winning goal, so shares are
+    # taken of whichever is larger. fpl_ceiling normalises its scorer draw the
+    # same way, which is what kept the two in step.
+    xi_goal_rate = {}
+    if any(winning_goal_pts(scoring, pos) for pos in POS_NAME):
+        for p in data["players"]:
+            if p["code"] in xi:
+                xi_goal_rate[p["team_id"]] = (xi_goal_rate.get(p["team_id"], 0.0)
+                                              + scoring_rates(p)[0]["goals"])
+
     out = []
     for p in data["players"]:
         avail = _availability(p)
@@ -788,6 +816,18 @@ def project(data, scoring, starters=None):
                 if dc_rate is None:
                     dc_rate = DC_PRIOR.get(pos, 0.0)
                 pts += _poisson_at_least(threshold, dc_rate) * dc_pts[pos]
+            # Winning goal: the goal that puts a side one ahead of the
+            # opponent's final total, so every win has exactly one. Each goal's
+            # scorer is drawn independently, so the chance it is this player's
+            # is his share of the team's expected goals, whichever goal it is.
+            # Worth 0 in normal weeks; GW6's "Matchwinner" makes it 10.
+            wg = winning_goal_pts(scoring, pos)
+            if wg:
+                team_goals = fr["home_goals"] if is_home else fr["away_goals"]
+                opp_goals = fr["away_goals"] if is_home else fr["home_goals"]
+                scorers = max(team_goals, xi_goal_rate.get(p["team_id"], 0.0) * atk)
+                share = min(1.0, rates["goals"] * atk / scorers) if scorers > 0 else 0.0
+                pts += win_prob(team_goals, opp_goals) * share * wg
             pts += rates["bonus"]
             total += pts * rates["minutes_share"]
 

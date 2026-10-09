@@ -1,0 +1,13 @@
+{
+  "event": 6,
+  "name": "Matchwinner",
+  "description": "Winning goals are worth an additional 10 points. One player per club, six players, unlimited budget.",
+  "player_multipliers": [],
+  "scoring_multipliers": {},
+  "scoring_overrides": {
+    "winning_goals": 10
+  },
+  "_scoring_note": "On top of the normal goal points, not instead of them. A winning goal is the one that puts a side one ahead of the opponent's final total, so each win has exactly one and draws and defeats have none. Same 10 for every position, because the source names no difference. base_scoring.winning_goals is 0 in a normal week.",
+  "source": "https://fplchallenge.premierleague.com/ home page, read 2026-10-09: \"Gameweek 6 Challenge - Matchwinner - Winning Goals are worth an additional 10 points. One player per club. Unlimited budget.\" The API confirms the club limit: event 6 overrides.rules.squad_team_limit = 1, released = true, overrides.scoring empty.",
+  "verified_on": "2026-10-09"
+}

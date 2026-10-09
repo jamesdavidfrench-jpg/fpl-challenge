@@ -172,6 +172,7 @@ def build_pool(data, twist, starters, target_teams, scoring=None):
             "assist_pts": scoring.get("assists", 3),
             "cs_pts": cs_pts.get(pos, 0),
             "concede_pts": concede_pts.get(pos, 0),
+            "wg_pts": S.winning_goal_pts(scoring, pos),
             "dc_pts": dc_pts.get(pos, 0),
             "appearance": scoring.get("long_play", 2),
             "save_pts": scoring.get("saves", 1),
@@ -300,15 +301,22 @@ def simulate(pool, trials, seed=7):
         goals_for = {}
         scored = [0] * n
         assisted = [0] * n
+        # Scorer of each team goal in order, None when nobody in the pool got
+        # it. The winning goal is the one at index (goals conceded).
+        scorers = {}
         for tid in teams:
             g = _poisson(rng, team_lambda[tid])
             goals_for[tid] = g
+            seq = scorers[tid] = []
             for _ in range(g):
                 u = rng.random()
+                who = None
                 for acc, i in scorer_cdf[tid]:
                     if u < acc:
                         scored[i] += 1
+                        who = i
                         break
+                seq.append(who)
                 u = rng.random()
                 for acc, i in assist_cdf[tid]:
                     if u < acc:
@@ -330,6 +338,7 @@ def simulate(pool, trials, seed=7):
             else:
                 conceded = _poisson(rng, pool[by_team[tid][0]]["goals_against"])
             cs = conceded == 0
+            winner = scorers[tid][conceded] if goals_for[tid] > conceded else None
             for i in by_team[tid]:
                 pl = pool[i]
                 if rng.random() >= pl["play_prob"] or rng.random() >= pl["availability"]:
@@ -338,6 +347,8 @@ def simulate(pool, trials, seed=7):
                 pts = pl["appearance"]
                 pts += scored[i] * pl["goal_pts"]
                 pts += assisted[i] * pl["assist_pts"]
+                if winner == i:
+                    pts += pl["wg_pts"]
                 returned = scored[i] > 0 or assisted[i] > 0
                 if cs:
                     pts += pl["cs_pts"]
