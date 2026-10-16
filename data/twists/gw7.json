@@ -1,0 +1,12 @@
+{
+  "event": 7,
+  "name": "Away Days",
+  "description": "Players in away matches earn double points. One player per club, six players, unlimited budget.",
+  "player_multipliers": [
+    {"factor": 2, "teams": ["CHE", "LIV", "HUL", "IPS", "AVL", "SUN", "CRY", "MUN", "ARS", "COV"]}
+  ],
+  "scoring_multipliers": {},
+  "_scoring_note": "The away side of each of the ten GW7 fixtures, read from the fixture list in players.json. Every club plays once, so no club is home and away. Doubling applies to the negatives too, as in GW2.",
+  "source": "https://fplchallenge.premierleague.com/ home page, read 2026-10-16: \"Gameweek 7 Challenge - Away Days - Players in away matches earn double points. One player per club. Unlimited budget.\" The API confirms the club limit: event 7 overrides.rules.squad_team_limit = 1, released = true, overrides.scoring empty.",
+  "verified_on": "2026-10-16"
+}

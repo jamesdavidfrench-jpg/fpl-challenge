@@ -70,6 +70,10 @@ python scripts/fpl_track.py record
    club, projected points, kickoff and opponent. For an alternative, give its
    formation too, even when it matches.
 
+   **The team sheet goes in the reply itself, before anything else ends the
+   turn.** On 2026-10-16 the GW7 pick was solved and recorded but never shown,
+   because the turn closed on a question box. Write the sheet first.
+
 5. **Run the ceiling squad too.** Run `fpl_ceiling.py`. It answers a different
    question - not which squad scores most on average, but which is most likely
    to clear the score that wins James's league. Run it every week, and report
@@ -80,6 +84,18 @@ python scripts/fpl_track.py record
    winning the week, and let James choose. Do not quietly enter one or the
    other - the recorded pick is whichever he enters, and `fpl_track.py` has
    `chosen_by` and `deviation_reason` for exactly this.
+
+   `--league` ranks squads by expected league points instead, each simulated
+   score replayed against the rivals' real scores from the weeks already
+   played. It is an option, not the default: replayed over GW3-6 it earned 1
+   league point to the 80 rule's 3, which four weeks cannot separate. Re-run
+   that comparison at GW10 before promoting it. Numbers above `MIN_LEAGUE_WEEKS`.
+
+   **The armband is worth as much as a sixth player, so name the runner-up
+   captain and the gap.** GW4 and GW6 were both lost on it: Fernandes was
+   captained over Haaland on a gap of 1 point or less, and scored 4 and 1
+   against Haaland's 18 and 16. When two captains are within a point, say so,
+   and show what the ceiling script picks.
 
    It enumerates every legal squad when it can and searches when it cannot, and
    says which it did. Weeks whose twist restricts the clubs are small enough to
@@ -368,6 +384,19 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
 
   Not fitted separately: goals and assists for players with no Premier League
   past. They use 8, like everyone else.
+- **Past rates are pulled towards the position average, and no one match can
+  carry more than 0.6 expected goals.** Added 2026-10-16 after Fernandes was
+  projected 36 over GW3-6 and scored 9. His rate rested half on a career-best
+  2025/26 (24 assists, 41 bonus), and his GW2 hat-trick (2.02 expected goals,
+  against 0.11 a match in his other five) lifted his goal rate by half for four
+  weeks. Fitted on past seasons, the pull cuts next-season error by 20% for
+  bonus, 9% for assists and 5% for goals. The cap is a 2% gain. Neither changed
+  the season much in the replay: GW2-6 scored 287 against 279. The model's
+  top-30 midfielders were still projected 6.8 and scored 4.7 over GW3-6, and
+  across every starting midfielder the projection is right on average. So the
+  rest of that gap looks like elite midfielders missing chances this season,
+  not a fault the model can fix. Numbers above `RATE_PRIOR_MINUTES` and
+  `XG_MATCH_CAP`.
 - **Predicting who plays matters more than predicting how many points.** In GW1,
   the 22 of the model's top 30 who started were projected 182 and scored 173 -
   nearly exact. The 8 who did not start were projected 67 and scored 12. That is

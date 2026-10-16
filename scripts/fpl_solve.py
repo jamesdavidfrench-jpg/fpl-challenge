@@ -257,6 +257,44 @@ ASSIST_PRIOR_STRENGTH = {1: None, 2: 9.8, 3: 42.4, 4: 28.1}
 XG_SCALE = {1: 1.00, 2: 0.848, 3: 1.034, 4: 0.995}
 XA_SCALE = {1: 1.00, 2: 1.303, 3: 1.323, 4: 2.369}
 
+# Past rates are pulled towards the average for the position, by less the more
+# minutes stand behind them: a player's own rate counts minutes / (minutes + K).
+# The finishing shrink above only corrects how well a player converts; this
+# corrects how often he gets there at all, and bonus had no shrink of any kind.
+#
+# Why: Bruno Fernandes. 2025/26 was his career-best season by a distance - 24
+# assists and 41 bonus, against 9-12 and 23-28 in the three before - and with
+# half the weight on the latest season the model read it as his level. He was
+# projected 36 points over GW3-6 and scored 9, and was captained twice.
+#
+# Fitted 2026-10-16 by predicting 2024/25 and 2025/26 per-90 rates from the
+# seasons before each, for every outfield player with 900+ minutes in the
+# target season, using this module's own rates. Error against no pull at all:
+#
+#   K (minutes)     1000    2000    3500    6000
+#   goals           0.949   0.964   1.01    1.089
+#   assists         0.909   0.906   0.925   0.965
+#   bonus           0.849   0.812   0.799   0.805
+#
+# The averages are minutes-weighted over the same players. Re-weighting the
+# seasons instead (equal thirds, or 0.3/0.3/0.4) was worse than the current
+# 0.2/0.3/0.5 every time, so the recency weights stay.
+RATE_PRIOR_MINUTES = {"goals": 1000, "assists": 1500, "bonus": 3500}
+RATE_PRIOR_MEAN = {
+    2: {"goals": 0.050, "assists": 0.076, "bonus": 0.232},
+    3: {"goals": 0.181, "assists": 0.173, "bonus": 0.302},
+    4: {"goals": 0.512, "assists": 0.184, "bonus": 0.630},
+}
+
+
+def _pull_to_position(rate, stat, pos, minutes):
+    """A past per-90 rate, pulled towards the position's average."""
+    mean = (RATE_PRIOR_MEAN.get(pos) or {}).get(stat)
+    if mean is None or minutes <= 0:
+        return rate
+    w = minutes / (minutes + RATE_PRIOR_MINUTES[stat])
+    return mean + w * (rate - mean)
+
 
 def _shrunk_rate(scored, expected, minutes, league_ratio, prior_strength):
     """Per-90 rate: expected volume, scaled by how well this player converts it.
@@ -343,6 +381,8 @@ def _rates_from_history(p):
         or float(s.get("expected_assists") or 0) > 0
     ]
     goals, assists = per90("goals_scored"), per90("assists")
+    # Minutes behind the scoring rates, for _pull_to_position.
+    rate_minutes = sum(s["minutes"] for s in rate_seasons)
     if xg_seasons:
         # Totals rather than per-90 averages, because a conversion ratio needs
         # both halves on the same scale - and a 3000-minute season should weigh
@@ -377,11 +417,18 @@ def _rates_from_history(p):
     else:
         goal_conv = assist_conv = None
 
+    # After the conversion ratios on purpose: those scale this season's
+    # expected goals, which are evidence in their own right and should not be
+    # pulled for what the past seasons overstated.
+    pos = p["position"]
+    goals = _pull_to_position(goals, "goals", pos, rate_minutes)
+    assists = _pull_to_position(assists, "assists", pos, rate_minutes)
+
     return {
         "goals": goals,
         "assists": assists,
         "saves": per90("saves"),
-        "bonus": per90("bonus"),
+        "bonus": _pull_to_position(per90("bonus"), "bonus", pos, rate_minutes),
         "dc": dc,
         "minutes_share": minutes_share,
         "goal_conv": goal_conv,
@@ -406,7 +453,21 @@ def _rates_from_history(p):
 # bonus and nothing measurable yet for the rest; 8 is used for all of them
 # because it is best where it matters and costs nothing measurable elsewhere.
 # Re-fit as the season fills in - the answer should move.
+#
+# Re-fitted 2026-10-16 on GW2-6, 749 player-matches. The weight still barely
+# matters: every K from 8 to 32 is within 1% for expected goals, assists and
+# bonus. 8 stays.
 PAST_SEASONS_AS_MATCHES = 8
+
+# No single match counts for more than this many expected goals in the blend.
+# Fernandes's GW2 hat-trick carried 2.02, against an average of 0.11 in his
+# other five matches, and it lifted his goal rate by half for four weeks.
+# Penalties sit inside expected goals and arrive in lumps, so one match can
+# say a lot more about the referee than about the player. Same 749
+# player-matches: error 0.982 of uncapped at 0.6, 0.987 at 0.8, 0.992 at 1.0.
+# A small gain, and it is a cap on the outlier rather than a change to anyone
+# who did not have one.
+XG_MATCH_CAP = 0.6
 
 # A player with no measured defensive-action rate falls back to a flat guess by
 # position, which is worth much less. Fitted the same way on 101 player-matches
@@ -425,7 +486,8 @@ def _blend_this_season(rates, p, low_conf):
     if played <= 0:
         return rates
     tot = {k: sum(v.get(k, 0) for v in gs.values())
-           for k in ("dc", "xg", "xa", "saves", "bonus")}
+           for k in ("dc", "xa", "saves", "bonus")}
+    tot["xg"] = sum(min(v.get("xg", 0), XG_MATCH_CAP) for v in gs.values())
     pos = p["position"]
     k = PAST_SEASONS_AS_MATCHES
 

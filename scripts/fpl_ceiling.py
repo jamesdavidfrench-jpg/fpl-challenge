@@ -31,7 +31,9 @@ Usage:
 
 import argparse
 import itertools
+import json
 import math
+import os
 import random
 
 import fpl_solve as S
@@ -43,6 +45,24 @@ import fpl_solve as S
 # other people, not by the game-wide average of 34 to 49.
 DEFAULT_TARGET = 80
 
+# The league pays 3, 2 and 1 for the top three each week, so the score that
+# matters is not one number. 80 wins most weeks, but 55 was enough for third in
+# GW5 and 36 in GW6, and a squad tuned only for 80 throws those away. --league
+# values each simulated score at the league points it would have earned against
+# the rivals' actual scores, averaged over every week scored so far - see
+# league_value_curve().
+#
+# It is an option, not the default, because it has not earned that yet.
+# Replayed over GW3-6 on 2026-10-16, each week judged against a curve built
+# from the other weeks, the top squad by expected league points scored 197 for
+# 1 league point; the top squad by chance of 80 scored 218 for 3. Most of the
+# gap is one GW5 call (the 80 squad had Tarkowski, 22 points), and four weeks
+# cannot tell the two apart. Re-run the comparison at GW10.
+#
+# Needs this many scored weeks before the curve is built at all.
+MIN_LEAGUE_WEEKS = 3
+MAX_SCORE = 300
+
 # Bonus is three points at most, so a player whose mean bonus cannot be paid
 # for by his returning trials alone gets the remainder as a flat amount.
 MAX_BONUS = 3
@@ -50,6 +70,57 @@ MAX_BONUS = 3
 # Mean bonus awarded on a returning trial, from the {1,2,3} weights below.
 BONUS_WEIGHTS = [(1, 0.5), (2, 0.3), (3, 0.2)]
 BONUS_MEAN = sum(v * w for v, w in BONUS_WEIGHTS)
+
+
+def threshold_values(target):
+    """1 for any score that clears the target, 0 below it."""
+    return [1.0 if s >= target else 0.0 for s in range(MAX_SCORE + 1)]
+
+
+def league_value_curve(log=None, skip_event=None):
+    """Expected league points, and the chance of any, for every whole score.
+
+    Each score is replayed against the rivals' real scores in every week the
+    tracker has scored, and the league points it would have earned are
+    averaged. A tie with a rival splits the places they share. Returns
+    (points, any_points, weeks), or None when fewer than MIN_LEAGUE_WEEKS
+    weeks are scored. skip_event leaves one week out, for backtesting it.
+    """
+    import fpl_track as T
+    if log is None:
+        path = os.path.join(S.DATA, "tracking.json")
+        if not os.path.exists(path):
+            return None
+        with open(path, encoding="utf-8") as f:
+            log = json.load(f)
+    weeks = []
+    for e in log.values():
+        if e.get("event") == skip_event or not e.get("league_scores"):
+            continue
+        # The scores carry names only; the squads say which name is ours.
+        me = ((e.get("rival_squads") or {}).get(str(T.ENTRY_ID)) or {}).get("player_name")
+        rivals = [r["score"] for r in e["league_scores"] if r.get("player_name") != me]
+        if rivals:
+            weeks.append(rivals)
+    if len(weeks) < MIN_LEAGUE_WEEKS:
+        return None
+    pts = [0.0] * (MAX_SCORE + 1)
+    anyp = [0.0] * (MAX_SCORE + 1)
+    for s in range(MAX_SCORE + 1):
+        for rivals in weeks:
+            above = sum(1 for r in rivals if r > s)
+            tied = sum(1 for r in rivals if r == s)
+            places = range(above + 1, above + tied + 2)
+            pts[s] += sum(T.LEAGUE_POINTS.get(q, 0) for q in places) / len(places)
+            anyp[s] += sum(1 for q in places if q in T.LEAGUE_POINTS) / len(places)
+        pts[s] /= len(weeks)
+        anyp[s] /= len(weeks)
+    return pts, anyp, len(weeks)
+
+
+def _value(values, total):
+    """Look a simulated total up in a per-score value table."""
+    return values[min(MAX_SCORE, max(0, int(total)))]
 
 
 def player_rates(p, xi, confirmed_teams, data=None):
@@ -568,9 +639,12 @@ def _squad_legal(pool, squad, con):
     return True
 
 
-def search_squads(pool, sims, con, target, cands=40, restarts=40,
+def search_squads(pool, sims, con, values, cands=40, restarts=40,
                   trials=2500, seed=11):
-    """Hill-climb towards squads that clear the target, for weeks too big to enumerate.
+    """Hill-climb towards squads worth the most, for weeks too big to enumerate.
+
+    values prices each whole score - threshold_values() or league_value_curve().
+
 
     Exhaustive is always preferred and main() uses it whenever the space is
     small enough. This is the fallback, and it is a heuristic - it returns good
@@ -626,7 +700,7 @@ def search_squads(pool, sims, con, target, cands=40, restarts=40,
     def hits(squad):
         cap = max(squad, key=lambda i: _percentile(sims[i][:trials], 0.90))
         vecs = [sims[i][:trials] for i in squad] + [sims[cap][:trials]]
-        return sum(1 for vals in zip(*vecs) if sum(vals) >= target) / trials
+        return sum(_value(values, sum(vals)) for vals in zip(*vecs)) / trials
 
     by_pos = {}
     for i in short:
@@ -720,8 +794,13 @@ def search_squads(pool, sims, con, target, cands=40, restarts=40,
     return found
 
 
-def score_squads(pool, sims, squads, target, top=25):
-    """Rank squads by how often they clear the target, not by their average."""
+def score_squads(pool, sims, squads, values, top=25):
+    """Rank squads by what their scores are worth, not by their average.
+
+    Returns (worth, mean, squad, captain) rows, worth being the mean of values
+    over the trials: a chance of clearing a threshold, or expected league
+    points.
+    """
     trials = len(sims[0])
     means = [sum(s) / trials for s in sims]
     rows = []
@@ -732,14 +811,13 @@ def score_squads(pool, sims, squads, target, top=25):
         # always belong on the safest player.
         cap = max(squad, key=lambda i: means[i])
         cvec = sims[cap]
-        hits = 0
+        worth = 0.0
         total = 0.0
         for vals in zip(*vecs, cvec):
             s = sum(vals[:-1]) + vals[-1]
             total += s
-            if s >= target:
-                hits += 1
-        rows.append((hits / trials, total / trials, squad, cap))
+            worth += _value(values, s)
+        rows.append((worth / trials, total / trials, squad, cap))
     rows.sort(reverse=True)
 
     # Now try every armband on the shortlist.
@@ -748,14 +826,12 @@ def score_squads(pool, sims, squads, target, top=25):
         vecs = [sims[i] for i in squad]
         for cap in squad:
             cvec = sims[cap]
-            hits, total = 0, 0.0
-            vals_list = list(zip(*vecs, cvec))
-            for vals in vals_list:
+            worth, total = 0.0, 0.0
+            for vals in zip(*vecs, cvec):
                 s = sum(vals[:-1]) + vals[-1]
                 total += s
-                if s >= target:
-                    hits += 1
-            best.append((hits / trials, total / trials, squad, cap))
+                worth += _value(values, s)
+            best.append((worth / trials, total / trials, squad, cap))
     best.sort(reverse=True)
     seen, out = set(), []
     for row in best:
@@ -769,6 +845,7 @@ def score_squads(pool, sims, squads, target, top=25):
 
 
 def distribution(pool, sims, squad, cap, target):
+    """Spread of the squad's simulated totals, and its chance of clearing target."""
     trials = len(sims[0])
     vecs = [sims[i] for i in squad]
     totals = sorted(sum(v) + sims[cap][t] for t, v in enumerate(zip(*vecs)))
@@ -796,6 +873,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--target", type=int, default=DEFAULT_TARGET,
                     help="score to clear (default: what wins James's league)")
+    ap.add_argument("--league", action="store_true",
+                    help="rank by expected league points against the rivals' "
+                         "past scores instead of by the chance of clearing --target")
     ap.add_argument("--trials", type=int, default=20000)
     ap.add_argument("--top", type=int, default=6)
     ap.add_argument("--seed", type=int, default=7)
@@ -820,7 +900,18 @@ def main():
     pool = build_pool(data, twist, starters, target_teams)
     print("Gameweek {} - {}".format(data["event"]["id"], (twist or {}).get("name", "no twist")))
     print("Pool: {} players from {}".format(len(pool), ", ".join(sorted(target_teams))))
-    print("Target to clear: {} pts\n".format(args.target))
+    curve = league_value_curve() if args.league else None
+    target = args.target
+    if curve:
+        values, any_points, weeks = curve
+        print("Ranked by expected league points, each simulated score replayed "
+              "against the rivals' real scores in {} weeks.\n".format(weeks))
+    else:
+        if args.league:
+            print("Fewer than {} league weeks scored, so ranking by --target "
+                  "instead.".format(MIN_LEAGUE_WEEKS))
+        values = threshold_values(target)
+        print("Target to clear: {} pts\n".format(target))
 
     sims = simulate(pool, args.trials, args.seed)
 
@@ -836,18 +927,29 @@ def main():
         squads = legal_squads(pool, con)
         print("{:,} legal squads - enumerated exactly.\n".format(space))
     else:
-        squads = search_squads(pool, sims, con, args.target, seed=args.seed)
+        squads = search_squads(pool, sims, con, values, seed=args.seed)
         print("{:,} legal squads - too many to enumerate, so searched instead.".format(space))
         print("{} distinct squads found by hill-climbing. This is a good answer,"
               " not a provably best one.\n".format(len(squads)))
 
-    ranked = score_squads(pool, sims, squads, args.target, top=args.top)
+    ranked = score_squads(pool, sims, squads, values, top=args.top)
 
-    print("CEILING SQUADS - ranked by chance of clearing {}\n".format(args.target))
-    for n, (hit, mean, squad, cap) in enumerate(ranked, 1):
-        d = distribution(pool, sims, squad, cap, args.target)
-        print("{}. {:.1%} chance of {}+   mean {:.1f}   median {:.0f}   top 10% {:.0f}+".format(
-            n, hit, args.target, mean, d["median"], d["p90"]))
+    if curve:
+        print("CEILING SQUADS - ranked by expected league points\n")
+    else:
+        print("CEILING SQUADS - ranked by chance of clearing {}\n".format(target))
+    for n, (worth, mean, squad, cap) in enumerate(ranked, 1):
+        d = distribution(pool, sims, squad, cap, DEFAULT_TARGET if curve else target)
+        if curve:
+            vecs = [sims[i] for i in squad]
+            placed = sum(_value(any_points, sum(v) + sims[cap][t])
+                         for t, v in enumerate(zip(*vecs))) / len(sims[0])
+            print("{}. {:.2f} league points expected   {:.0%} chance of any   "
+                  "mean {:.1f}   median {:.0f}   top 10% {:.0f}+".format(
+                      n, worth, placed, mean, d["median"], d["p90"]))
+        else:
+            print("{}. {:.1%} chance of {}+   mean {:.1f}   median {:.0f}   top 10% {:.0f}+".format(
+                n, worth, target, mean, d["median"], d["p90"]))
         print("   " + describe(pool, squad, cap))
     return ranked
 
