@@ -882,7 +882,10 @@ def main():
     ap.add_argument("--max-enumerate", type=int, default=500000,
                     help="above this many legal squads, search instead of enumerating")
     ap.add_argument("--allow-stale", action="store_true")
+    ap.add_argument("--mid-pull", type=float, default=S.MID_RATE_PULL,
+                    help="as fpl_solve --mid-pull; see MID_RATE_PULL there")
     args = ap.parse_args()
+    S.MID_RATE_PULL = args.mid_pull
 
     data = S.load()
     S.check_freshness(data, args.allow_stale)

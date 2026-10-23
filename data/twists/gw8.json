@@ -1,0 +1,15 @@
+{
+  "event": 8,
+  "name": "Legends",
+  "description": "Players who have been at their club for at least five years score double points. One player per club, six players, unlimited budget.",
+  "player_multipliers": [
+    {
+      "factor": 2,
+      "team_join_date_before": "2021-10-23",
+      "_note": "Five years before GW8's first kickoff (2026-10-23 19:00Z), on the team_join_date field. No player in players.json joined between 2021-09-01 and 2021-12-31, so measuring the five years to the start of the season instead gives the same set. Academy graduates carry the date they turned professional, not the date they joined the academy, so a young academy player who has been at the club for 5+ years but signed pro since late 2021 is NOT doubled here. If the game counts academy years, those players are under-rated. Nothing in the API marks the eligible players."
+    }
+  ],
+  "scoring_multipliers": {},
+  "source": "https://fplchallenge.premierleague.com/ home page, read 2026-10-23: \"Gameweek 8 Challenge - Legends - Players who have been at their club for at least five years score double points. One player per club. Unlimited budget.\" The API confirms the club limit: event 8 overrides.rules.squad_team_limit = 1, released = true, overrides.scoring empty.",
+  "verified_on": "2026-10-23"
+}

@@ -509,6 +509,48 @@ def _blend_this_season(rates, p, low_conf):
     return out
 
 
+# Midfielders' goal, assist and bonus rates, after blending, keep this share of
+# their distance from the position average. 1.0 changes nothing, and is the
+# default. `--mid-pull 0.7` on fpl_solve, fpl_ceiling and `fpl_track record`
+# tries a stronger pull. It squeezes only the top of the board: an average
+# midfielder doesn't move.
+#
+# Why it exists: over GW3-7 the model's top 8 midfielders each week (40
+# player-weeks) were projected 5.95 points and scored 3.73. Defenders, forwards
+# and keepers at the top all scored within 7% of projection. Our 11 midfield
+# picks were projected 122, counting the captain twice, and scored 42 - the
+# whole of a 16-points-a-week shortfall. The parts that fell short were goals
+# (-0.66 a match), bonus (-0.31) and assists (-0.22).
+#
+# Why it is not the default: nothing out of sample supports it. Refitting
+# RATE_PRIOR_MINUTES on past seasons, judged on the top tenth of midfielders,
+# found the current pull about right (goals 12% high, assists 15% low, bonus 5%
+# high). Refitting PAST_SEASONS_AS_MATCHES point in time on GW3-7 found 8 as
+# good as anything from 2 to 32, at the top of the midfield and across everyone.
+# On the expected-goals scale the top fifth of midfielders were only 7% high,
+# so most of the gap is finishing and one bad season for a few elite players.
+# Replaying GW3-7 with this model on each week's committed data:
+#
+#   pull              1.0     0.8     0.6     0.4
+#   points            240     227     256     254
+#   league points       2       1       2       2
+#
+# Not steady, and judged on the same five weeks that raised it. Re-check at GW10 with `fpl_track.py report`, which prints the shortfall by
+# position.
+MID_RATE_PULL = 1.0
+
+
+def _pull_midfield_top(rates, pos):
+    if pos != POS_ID["MID"] or MID_RATE_PULL == 1.0:
+        return rates
+    out = dict(rates)
+    for stat in ("goals", "assists", "bonus"):
+        mean = RATE_PRIOR_MEAN[pos][stat]
+        if out[stat] > mean:
+            out[stat] = mean + MID_RATE_PULL * (out[stat] - mean)
+    return out
+
+
 def scoring_rates(p):
     """Per-90 rates: past seasons, or a price guess without them, with this
     season blended in. Returns (rates, low_conf), where low_conf means no
@@ -520,7 +562,8 @@ def scoring_rates(p):
     low_conf = rates is None
     if low_conf:
         rates = _price_prior(p)
-    return _blend_this_season(rates, p, low_conf), low_conf
+    rates = _blend_this_season(rates, p, low_conf)
+    return _pull_midfield_top(rates, p["position"]), low_conf
 
 
 # Goals conceded costs a point for every second goal let in during a match.
@@ -1115,7 +1158,9 @@ def apply_twist(players, twist, team_ids):
 
     Supported keys:
       player_multipliers: [{factor, teams?, team_join_date_after?,
-                            positions?, player_codes?}]
+                            team_join_date_before?, positions?, player_codes?}]
+      Both dates are inclusive ISO dates. A player with no join date never
+      matches either.
       scoring_multipliers: {goals_scored: 2, assists: 2, ...}  (approximate)
     """
     if not twist:
@@ -1141,12 +1186,17 @@ def apply_twist(players, twist, team_ids):
         factor = rule.get("factor", 1.0)
         teams = set(rule.get("teams") or [])
         after = rule.get("team_join_date_after")
+        before = rule.get("team_join_date_before")
         positions = set(rule.get("positions") or [])
         codes = set(rule.get("player_codes") or [])
         for p in players:
             if teams and p["team"] not in teams:
                 continue
             if after and not (p.get("team_join_date") or "") >= after:
+                continue
+            # Compare the date part only, so a timestamp on the cutoff day
+            # still counts as on it.
+            if before and not "" < (p.get("team_join_date") or "")[:10] <= before:
                 continue
             if positions and POS_NAME[p["position"]] not in positions:
                 continue
@@ -1512,6 +1562,7 @@ def check_freshness(data, allow_stale=False):
 
 
 def main():
+    global MID_RATE_PULL
     ap = argparse.ArgumentParser()
     ap.add_argument("--alternatives", type=int, default=3)
     ap.add_argument("--include-started", action="store_true",
@@ -1522,7 +1573,11 @@ def main():
                     help="solve even if players.json is for a finished gameweek")
     ap.add_argument("--teams", action="store_true",
                     help="print each club's attack and defence against its rating")
+    ap.add_argument("--mid-pull", type=float, default=MID_RATE_PULL,
+                    help="share of a midfielder's above-average goal, assist and "
+                         "bonus rate to keep (default 1.0; see MID_RATE_PULL)")
     args = ap.parse_args()
+    MID_RATE_PULL = args.mid_pull
 
     data = load()
     check_freshness(data, allow_stale=args.stale_ok)

@@ -227,7 +227,8 @@ ordering for outfield players; it is not the starting eleven.
 ```
 
 `player_multipliers` entries can filter on any combination of:
-`teams` (short names), `team_join_date_after` (ISO date), `positions`
+`teams` (short names), `team_join_date_after` and `team_join_date_before`
+(inclusive ISO dates; GW8's "Legends" used `before`), `positions`
 (GKP/DEF/MID/FWD), `player_codes`. All listed filters must match.
 
 `scoring_multipliers` scales the share of a projection attributable to that
@@ -393,10 +394,26 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   bonus, 9% for assists and 5% for goals. The cap is a 2% gain. Neither changed
   the season much in the replay: GW2-6 scored 287 against 279. The model's
   top-30 midfielders were still projected 6.8 and scored 4.7 over GW3-6, and
-  across every starting midfielder the projection is right on average. So the
-  rest of that gap looks like elite midfielders missing chances this season,
-  not a fault the model can fix. Numbers above `RATE_PRIOR_MINUTES` and
-  `XG_MATCH_CAP`.
+  across every starting midfielder the projection is right on average. Numbers
+  above `RATE_PRIOR_MINUTES` and `XG_MATCH_CAP`.
+- **The top of the midfield is still over-rated, and nothing fitted out of
+  sample fixes it yet.** Checked 2026-10-23 after GW7. Over GW3-7 the model's
+  top 8 midfielders each week were projected 5.95 and scored 3.73. The top 8
+  defenders, forwards and keepers all scored within 7% of their projections.
+  Our midfield picks account for the whole of a 16-points-a-week shortfall.
+  Every week the model rated our six as the best squad in the league. The
+  rivals' squads, scored on the same model, landed within 0.3 of a point of it.
+  The shortfall is in goals, bonus and assists. Refitting the pull to average
+  on past seasons, and the weight on this season, both left the current
+  settings where they are. `--mid-pull` (on `fpl_solve`, `fpl_ceiling` and
+  `fpl_track record`) applies a stronger pull as an option. The default is 1.0.
+  Evidence and the replay are above `MID_RATE_PULL` in `fpl_solve.py`. At
+  GW10, read the by-position lines at the end of `fpl_track.py report`. If
+  midfielders are still the gap, promote it.
+
+  **Until then, treat a midfield captain within about 1.5 points of a
+  defender or forward as a coin toss, and say so.** GW6 (Fernandes over
+  Haaland) and GW7 (Saka over Gabriel) were both lost that way.
 - **Predicting who plays matters more than predicting how many points.** In GW1,
   the 22 of the model's top 30 who started were projected 182 and scored 173 -
   nearly exact. The 8 who did not start were projected 67 and scored 12. That is

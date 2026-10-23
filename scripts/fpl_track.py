@@ -159,6 +159,7 @@ def record():
             "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "projected": round(score, 2),
             "captain_code": cap,
+            "mid_pull": fpl_solve.MID_RATE_PULL,
             "picks": [
                 {
                     "code": p["code"],
@@ -336,7 +337,32 @@ def report():
     print("Beating that average is not the target - it is only a check that "
           "the picker works. The league table is decided by eight other people.")
 
+    # Where the shortfall sits. Over GW3-7 it was all midfielders, and this is
+    # the line that decides whether MID_RATE_PULL in fpl_solve becomes the
+    # default at GW10.
+    by_pos = {}
+    for e in done:
+        for p in e["picks"]:
+            if "actual" not in p:
+                continue
+            c = 2 if p["code"] == e["captain_code"] else 1
+            t = by_pos.setdefault(p["position"], [0, 0.0, 0])
+            t[0] += 1
+            t[1] += p["projected"] * c
+            t[2] += p["actual"] * c
+    if by_pos:
+        print("Recommended picks by position, captain counted twice "
+              "(projected / scored / gap):")
+        for pos in ("GKP", "DEF", "MID", "FWD"):
+            if pos in by_pos:
+                n_, pr, ac = by_pos[pos]
+                print(f"  {pos}  {n_:>2} picks  {pr:6.1f} / {ac:4} / {ac - pr:+6.1f}")
+
 
 if __name__ == "__main__":
+    if "--mid-pull" in sys.argv:
+        i = sys.argv.index("--mid-pull")
+        fpl_solve.MID_RATE_PULL = float(sys.argv[i + 1])
+        del sys.argv[i:i + 2]
     cmd = sys.argv[1] if len(sys.argv) > 1 else "report"
     {"record": record, "score": score, "report": report}.get(cmd, report)()
