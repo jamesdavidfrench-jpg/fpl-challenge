@@ -1641,8 +1641,8 @@
   "event": 8,
   "event_name": "Gameweek 8",
   "twist": "Legends",
-  "recorded_at": "2026-10-23T13:38:44Z",
-  "projected": 58.34,
+  "recorded_at": "2026-10-23T13:47:01Z",
+  "projected": 57.49,
   "captain_code": 141746,
   "mid_pull": 1.0,
   "picks": [
@@ -1652,7 +1652,7 @@
     "name": "B.Fernandes",
     "team": "MUN",
     "position": "MID",
-    "projected": 10.754,
+    "projected": 10.186,
     "multiplier": 2.0,
     "low_confidence": false
    },
@@ -1662,7 +1662,7 @@
     "name": "Gabriel",
     "team": "ARS",
     "position": "DEF",
-    "projected": 9.486,
+    "projected": 9.472,
     "multiplier": 2.0,
     "low_confidence": false
    },
@@ -1672,7 +1672,7 @@
     "name": "Christie",
     "team": "BOU",
     "position": "MID",
-    "projected": 6.814,
+    "projected": 7.024,
     "multiplier": 2.0,
     "low_confidence": false
    },
@@ -1682,7 +1682,7 @@
     "name": "Ajer",
     "team": "BRE",
     "position": "DEF",
-    "projected": 7.942,
+    "projected": 8.092,
     "multiplier": 2.0,
     "low_confidence": false
    },
@@ -1692,7 +1692,7 @@
     "name": "Pickford",
     "team": "EVE",
     "position": "GKP",
-    "projected": 6.354,
+    "projected": 6.272,
     "multiplier": 2.0,
     "low_confidence": false
    },
@@ -1702,7 +1702,7 @@
     "name": "Haaland",
     "team": "MCI",
     "position": "FWD",
-    "projected": 6.231,
+    "projected": 6.262,
     "multiplier": 1.0,
     "low_confidence": false
    }

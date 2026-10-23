@@ -457,7 +457,24 @@ def _rates_from_history(p):
 # Re-fitted 2026-10-16 on GW2-6, 749 player-matches. The weight still barely
 # matters: every K from 8 to 32 is within 1% for expected goals, assists and
 # bonus. 8 stays.
-PAST_SEASONS_AS_MATCHES = 8
+#
+# Lowered to 4 on 2026-10-23, after GW7, at James's call ("last season
+# counting for that much feels too high"). Point in time on GW3-7, 926
+# player-matches with 60+ minutes, error per K:
+#
+#   K                                1       2       4       8       16
+#   goals+assists+bonus, as scored   8.181   8.093   8.039   8.022   8.028
+#   same, top fifth of each position 12.79   12.64   12.56   12.56   12.60
+#   cleared the defensive bar        .1379   .1346   .1325   .1320   .1324
+#   keeper saves per 90 (100 only)   3.341   3.170   3.030   2.949   2.918
+#
+# So 4 and 8 tie everywhere except saves, which keep 8. Below 4 the error
+# starts to climb. Replaying the GW5-7 picks with this model: 8 scored 118
+# and 1 league point, 4 scored 143 and 3. Nearly all of that gain is one
+# captain in GW5, so the tie, not the replay, is what licenses the change.
+# After 7 matches, this season is now 64% of a rate instead of 47%.
+PAST_SEASONS_AS_MATCHES = 4
+SAVES_PAST_AS_MATCHES = 8
 
 # No single match counts for more than this many expected goals in the blend.
 # Fernandes's GW2 hat-trick carried 2.02, against an average of 0.11 in his
@@ -499,7 +516,7 @@ def _blend_this_season(rates, p, low_conf):
     assist_conv = rates.get("assist_conv") or XA_SCALE.get(pos, 1.0)
     out["goals"] = mix(goal_conv * tot["xg"], rates["goals"], k)
     out["assists"] = mix(assist_conv * tot["xa"], rates["assists"], k)
-    out["saves"] = mix(tot["saves"], rates["saves"], k)
+    out["saves"] = mix(tot["saves"], rates["saves"], SAVES_PAST_AS_MATCHES)
     out["bonus"] = mix(tot["bonus"], rates["bonus"], k)
     if pos != POS_ID["GKP"]:
         measured = rates.get("dc") is not None and not low_conf
@@ -525,8 +542,9 @@ def _blend_this_season(rates, p, low_conf):
 # Why it is not the default: nothing out of sample supports it. Refitting
 # RATE_PRIOR_MINUTES on past seasons, judged on the top tenth of midfielders,
 # found the current pull about right (goals 12% high, assists 15% low, bonus 5%
-# high). Refitting PAST_SEASONS_AS_MATCHES point in time on GW3-7 found 8 as
-# good as anything from 2 to 32, at the top of the midfield and across everyone.
+# high). Refitting PAST_SEASONS_AS_MATCHES point in time on GW3-7 found 4 and 8
+# tied and lower values worse, at the top of the midfield and across everyone.
+# It is now 4; the replay table below was run at 8.
 # On the expected-goals scale the top fifth of midfielders were only 7% high,
 # so most of the gap is finishing and one bad season for a few elite players.
 # Replaying GW3-7 with this model on each week's committed data:

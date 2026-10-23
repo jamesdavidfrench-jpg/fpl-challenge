@@ -369,11 +369,14 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
 - **This season's numbers are blended into every scoring rate, and their weight
   grows each week.** Added 2026-09-18. Defensive actions, expected goals,
   expected assists, saves and bonus from each finished gameweek (`gw_stats` in
-  `players.json`) are mixed with the past-season rate. The past counts as 8
-  full matches of evidence and each match played this season adds one: this
-  season is a third of the rate after 4 matches, half after 8, two-thirds after
-  16. A player with no measured defensive-action rate has only a flat guess by
-  position to fall back on, so that guess counts as 1 match instead of 8.
+  `players.json`) are mixed with the past-season rate. The past counts as 4
+  full matches of evidence (8 for keepers' saves) and each match played this
+  season adds one: this season is half the rate after 4 matches, two-thirds
+  after 8. It was 8 until 2026-10-23, when James judged that too much weight on
+  the past. A refit on GW3-7 found 4 and 8 tied, so his call decided it; the
+  table is above `PAST_SEASONS_AS_MATCHES`. A player with no measured
+  defensive-action rate has only a flat guess by position to fall back on, so
+  that guess counts as 1 match.
 
   Fitted by predicting each player's next match from the ones before it, GW2 to
   GW4. After three matches this season adds a little for defensive actions and
