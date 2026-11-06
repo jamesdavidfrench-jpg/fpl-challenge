@@ -164,6 +164,65 @@ def win_prob(goals_for, goals_against, cap=12):
     return sum(pf[i] * pa[j] for i in range(cap) for j in range(i))
 
 
+# Long-range shooting, for twists that pay for it (GW10 "Spectacular": +1 per
+# shot on target from outside the box, +5 per goal from outside the box).
+#
+# The model works from attempts, not results. Attempts from outside the box are
+# the best-sampled of the three stats - 858 in GW1-9 against 41 goals - and
+# conversion is league-wide, because finishing barely varies between players
+# (see GOAL_PRIOR_STRENGTH). Each player's attempts per 90 this season are
+# pulled towards his position's rate with OBOX_PRIOR_MATCHES matches' weight.
+#
+# Fitted 2026-11-06 by predicting each player's attempts in the later weeks from
+# the earlier ones, splitting GW1-9 after GW5, 6, 7 and 8. Mean squared error
+# per player, K = matches of position-average weight:
+#   split  K=1    K=3    K=5    K=8    K=20   position only
+#   GW5   1.710  1.474  1.442  1.452  1.524  1.664
+#   GW6   1.124  1.036  1.039  1.065  1.143  1.274
+#   GW7   0.825  0.759  0.753  0.760  0.796  0.867
+#   GW8   0.450  0.411  0.401  0.398  0.402  0.420
+# K = 5 is best or within 1% of best in every split.
+#
+# Two things the data says that are easy to get wrong:
+# - The cached per-gameweek live files show outside_box_shots_on_target as
+#   zero for GW1-8, but the season totals carry 164 from 859 attempts (19%),
+#   the same rate GW9's live file shows (19 from 97). The stat was backfilled
+#   after those files were cached, so read the season totals, never the cache.
+# - A goal is not also counted as a shot on target: the three players who
+#   scored from range in GW9 with one attempt each show 0 shots on target.
+#   So the two payouts are added, not nested.
+OBOX_PRIOR_MATCHES = 5
+
+
+def obox_model(data, scoring):
+    """League rates for the long-range twist, or None when it pays nothing."""
+    sot_pts = scoring.get("outside_box_shots_on_target") or 0
+    goal_pts = scoring.get("outside_box_goals") or 0
+    if not (sot_pts or goal_pts):
+        return None
+    att, mins, sot, goals = {}, {}, 0, 0
+    sot_att = 0  # attempts by players in weeks the SOT stat was recorded
+    for p in data["players"]:
+        pos = p["position"]
+        att[pos] = att.get(pos, 0) + (p.get("attempts_obox") or 0)
+        mins[pos] = mins.get(pos, 0) + (p.get("minutes") or 0)
+        goals += p.get("obox_goals") or 0
+        sot += p.get("obox_sot") or 0
+    total_att = sum(att.values()) or 1
+    return {
+        "pos_rate": {k: (att[k] / mins[k] * 90 if mins.get(k) else 0.0) for k in att},
+        "per_attempt": sot / total_att * sot_pts + goals / total_att * goal_pts,
+    }
+
+
+def obox_points_per_90(p, obox):
+    """Expected long-range twist points for one full match."""
+    prior = obox["pos_rate"].get(p["position"], 0.0)
+    m90 = (p.get("minutes") or 0) / 90
+    rate = ((p.get("attempts_obox") or 0) + OBOX_PRIOR_MATCHES * prior) / (m90 + OBOX_PRIOR_MATCHES)
+    return rate * obox["per_attempt"]
+
+
 def winning_goal_pts(scoring, pos):
     """Points for a winning goal. The API holds it as a plain number, but a
     twist may restate it per position like the other stats."""
@@ -555,7 +614,14 @@ def _blend_this_season(rates, p, low_conf):
 #
 # Not steady, and judged on the same five weeks that raised it. Re-check at GW10 with `fpl_track.py report`, which prints the shortfall by
 # position.
-MID_RATE_PULL = 1.0
+#
+# Promoted to 0.6 at GW10 (2026-11-06), as the GW10 re-check said to if the gap
+# held. Through GW8 the recommended midfielders were projected 164.8, captain
+# counted twice, and scored 82; forwards were +22.9 and defenders +8.7. Of 17
+# midfield picks, one beat his projection (Fernandes, GW2 hat-trick) and 14
+# scored 4 or fewer. 0.6 is the best value in the replay above. Re-check at
+# GW15; `--mid-pull 1.0` restores the old behaviour.
+MID_RATE_PULL = 0.6
 
 
 def _pull_midfield_top(rates, pos):
@@ -866,6 +932,7 @@ def project(data, scoring, starters=None):
     appearance = scoring.get("long_play", 2)
     dc_pts = {POS_ID[k]: v for k, v in (scoring.get("defensive_contribution") or {}).items()}
     concede_pts = {POS_ID[k]: v for k, v in (scoring.get("goals_conceded") or {}).items()}
+    obox = obox_model(data, scoring)
 
     # Each eleven's summed goal rates, for sharing out winning goals. They can
     # run well past the team's own expected goals - United's came to 2.82
@@ -951,6 +1018,10 @@ def project(data, scoring, starters=None):
                 scorers = max(team_goals, xi_goal_rate.get(p["team_id"], 0.0) * atk)
                 share = min(1.0, rates["goals"] * atk / scorers) if scorers > 0 else 0.0
                 pts += win_prob(team_goals, opp_goals) * share * wg
+            # Long-range shots: worth 0 in normal weeks; GW10's "Spectacular"
+            # pays for them. Scaled by the opponent's defence like goals.
+            if obox:
+                pts += obox_points_per_90(p, obox) * atk
             pts += rates["bonus"]
             total += pts * rates["minutes_share"]
 

@@ -194,6 +194,12 @@ def build(verbose=True):
                 # played in. Missing when the live feed was unreachable.
                 "gw_stats": gw_stats.get(m.get("id"), {}) if finished else None,
                 "total_points": p.get("total_points", 0),
+                # This season's long-range shooting, Challenge-only stats. Added
+                # for GW10's "Spectacular". The main game does not carry them,
+                # so there is no past-season record to blend in.
+                "attempts_obox": p.get("attempts_obox", 0),
+                "obox_sot": p.get("outside_box_shots_on_target", 0),
+                "obox_goals": p.get("outside_box_goals", 0),
                 # Ownership comes from the main game, which is live and priced
                 # by a few million managers. The Challenge copy reads 0.0 before
                 # the season starts. For goalkeepers this is the clearest signal

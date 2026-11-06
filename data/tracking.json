@@ -1641,20 +1641,21 @@
   "event": 8,
   "event_name": "Gameweek 8",
   "twist": "Legends",
-  "recorded_at": "2026-10-23T13:47:01Z",
-  "projected": 57.49,
-  "captain_code": 141746,
+  "recorded_at": "2026-10-25T12:38:10Z",
+  "projected": 51.7,
+  "captain_code": 191866,
   "mid_pull": 1.0,
   "picks": [
    {
-    "code": 141746,
-    "challenge_id": 426,
-    "name": "B.Fernandes",
+    "code": 95658,
+    "challenge_id": 418,
+    "name": "Maguire",
     "team": "MUN",
-    "position": "MID",
-    "projected": 10.186,
+    "position": "DEF",
+    "projected": 6.482,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 0
    },
    {
     "code": 226597,
@@ -1664,7 +1665,8 @@
     "position": "DEF",
     "projected": 9.472,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 34
    },
    {
     "code": 158499,
@@ -1674,7 +1676,8 @@
     "position": "MID",
     "projected": 7.024,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 2
    },
    {
     "code": 191866,
@@ -1684,7 +1687,8 @@
     "position": "DEF",
     "projected": 8.092,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 4
    },
    {
     "code": 111234,
@@ -1694,7 +1698,8 @@
     "position": "GKP",
     "projected": 6.272,
     "multiplier": 2.0,
-    "low_confidence": false
+    "low_confidence": false,
+    "actual": 2
    },
    {
     "code": 223094,
@@ -1703,6 +1708,473 @@
     "team": "MCI",
     "position": "FWD",
     "projected": 6.262,
+    "multiplier": 1.0,
+    "low_confidence": false,
+    "actual": 8
+   }
+  ],
+  "deviation_reason": "2026-10-25: Fernandes dropped from the MUN eleven (James). Gabriel, Pickford and Haaland were already locked, so only the other three slots were re-solved: Maguire in, captain Ajer.",
+  "actual": 54,
+  "average_entry_score": 44,
+  "highest_score": 122,
+  "entered": 58,
+  "league_name": "Challenge Cup",
+  "league_size": 9,
+  "league_position": 5,
+  "league_points": 0,
+  "league_scores": [
+   {
+    "player_name": "Scott Feather",
+    "score": 116
+   },
+   {
+    "player_name": "George Lancaster",
+    "score": 95
+   },
+   {
+    "player_name": "Robin Ackroyd",
+    "score": 85
+   },
+   {
+    "player_name": "Ian Bullock",
+    "score": 84
+   },
+   {
+    "player_name": "James French",
+    "score": 58
+   },
+   {
+    "player_name": "Josh Toulmin",
+    "score": 46
+   },
+   {
+    "player_name": "James Hirst",
+    "score": 30
+   },
+   {
+    "player_name": "Billy Boland",
+    "score": 30
+   },
+   {
+    "player_name": "Jimmy Walker",
+    "score": 26
+   }
+  ],
+  "league_winner": 116,
+  "league_third": 85,
+  "rival_squads": {
+   "175549": {
+    "player_name": "George Lancaster",
+    "picks": [
+     385,
+     4,
+     87,
+     390,
+     480,
+     379
+    ],
+    "captain": 4
+   },
+   "7232": {
+    "player_name": "Scott Feather",
+    "picks": [
+     385,
+     254,
+     87,
+     4,
+     457,
+     411
+    ],
+    "captain": 4
+   },
+   "75259": {
+    "player_name": "Robin Ackroyd",
+    "picks": [
+     226,
+     4,
+     87,
+     398,
+     165,
+     379
+    ],
+    "captain": 4
+   },
+   "75801": {
+    "player_name": "Josh Toulmin",
+    "picks": [
+     385,
+     87,
+     356,
+     15,
+     398,
+     165
+    ],
+    "captain": 15
+   },
+   "16955": {
+    "player_name": "Ian Bullock",
+    "picks": [
+     226,
+     4,
+     87,
+     154,
+     260,
+     411
+    ],
+    "captain": 4
+   },
+   "82078": {
+    "player_name": "James French",
+    "picks": [
+     226,
+     4,
+     87,
+     418,
+     460,
+     411
+    ],
+    "captain": 87
+   },
+   "82187": {
+    "player_name": "Jimmy Walker",
+    "picks": [
+     350,
+     390,
+     460,
+     15,
+     426,
+     165
+    ],
+    "captain": 426
+   },
+   "337035": {
+    "player_name": "James Hirst",
+    "picks": [
+     250,
+     87,
+     417,
+     15,
+     460,
+     165
+    ],
+    "captain": 87
+   },
+   "204181": {
+    "player_name": "Billy Boland",
+    "picks": [
+     350,
+     87,
+     390,
+     15,
+     429,
+     165
+    ],
+    "captain": 15
+   }
+  }
+ },
+ "9": {
+  "event": 9,
+  "event_name": "Gameweek 9",
+  "twist": null,
+  "recorded_at": "2026-11-06T00:00:00Z",
+  "projected": null,
+  "captain_code": 517052,
+  "chosen_by": "James",
+  "deviation_reason": "James picked this squad himself while on holiday; the model made no recommendation for GW9, so there is no projection to score against.",
+  "picks": [
+   {
+    "code": 204936,
+    "challenge_id": 384,
+    "name": "Donnarumma",
+    "team": "MCI",
+    "position": "GKP",
+    "projected": null,
+    "multiplier": 1.0,
+    "low_confidence": false,
+    "actual": 2
+   },
+   {
+    "code": 487838,
+    "challenge_id": 449,
+    "name": "Hall",
+    "team": "NEW",
+    "position": "DEF",
+    "projected": null,
+    "multiplier": 1.0,
+    "low_confidence": false,
+    "actual": 2
+   },
+   {
+    "code": 540324,
+    "challenge_id": 286,
+    "name": "Belloumi",
+    "team": "HUL",
+    "position": "MID",
+    "projected": null,
+    "multiplier": 1.0,
+    "low_confidence": false,
+    "actual": 9
+   },
+   {
+    "code": 460842,
+    "challenge_id": 512,
+    "name": "Kudus",
+    "team": "TOT",
+    "position": "MID",
+    "projected": null,
+    "multiplier": 1.0,
+    "low_confidence": false,
+    "actual": 8
+   },
+   {
+    "code": 517052,
+    "challenge_id": 166,
+    "name": "N.Jackson",
+    "team": "AVL",
+    "position": "FWD",
+    "projected": null,
+    "multiplier": 1.0,
+    "low_confidence": false,
+    "actual": 17
+   },
+   {
+    "code": 230730,
+    "challenge_id": 194,
+    "name": "Thomas-Asante",
+    "team": "COV",
+    "position": "FWD",
+    "projected": null,
+    "multiplier": 1.0,
+    "low_confidence": false,
+    "actual": 0
+   }
+  ],
+  "actual": 55,
+  "average_entry_score": 44,
+  "highest_score": 112,
+  "entered": 55,
+  "league_name": "Challenge Cup",
+  "league_size": 9,
+  "league_position": 6,
+  "league_points": 0,
+  "league_scores": [
+   {
+    "player_name": "George Lancaster",
+    "score": 90
+   },
+   {
+    "player_name": "Robin Ackroyd",
+    "score": 83
+   },
+   {
+    "player_name": "James Hirst",
+    "score": 79
+   },
+   {
+    "player_name": "Scott Feather",
+    "score": 69
+   },
+   {
+    "player_name": "Josh Toulmin",
+    "score": 69
+   },
+   {
+    "player_name": "James French",
+    "score": 55
+   },
+   {
+    "player_name": "Billy Boland",
+    "score": 38
+   },
+   {
+    "player_name": "Ian Bullock",
+    "score": 34
+   },
+   {
+    "player_name": "Jimmy Walker",
+    "score": 34
+   }
+  ],
+  "league_winner": 90,
+  "league_third": 79,
+  "rival_squads": {
+   "175549": {
+    "player_name": "George Lancaster",
+    "picks": [
+     57,
+     88,
+     286,
+     512,
+     400,
+     166
+    ],
+    "captain": 400
+   },
+   "7232": {
+    "player_name": "Scott Feather",
+    "picks": [
+     385,
+     176,
+     512,
+     591,
+     400,
+     166
+    ],
+    "captain": 591
+   },
+   "75259": {
+    "player_name": "Robin Ackroyd",
+    "picks": [
+     571,
+     88,
+     512,
+     400,
+     154,
+     166
+    ],
+    "captain": 400
+   },
+   "75801": {
+    "player_name": "Josh Toulmin",
+    "picks": [
+     110,
+     449,
+     400,
+     512,
+     286,
+     166
+    ],
+    "captain": 512
+   },
+   "16955": {
+    "player_name": "Ian Bullock",
+    "picks": [
+     597,
+     175,
+     286,
+     591,
+     154,
+     411
+    ],
+    "captain": 154
+   },
+   "82078": {
+    "player_name": "James French",
+    "picks": [
+     384,
+     449,
+     286,
+     512,
+     166,
+     194
+    ],
+    "captain": 166
+   },
+   "82187": {
+    "player_name": "Jimmy Walker",
+    "picks": [
+     82,
+     449,
+     68,
+     411,
+     166,
+     379
+    ],
+    "captain": 411
+   },
+   "337035": {
+    "player_name": "James Hirst",
+    "picks": [
+     82,
+     330,
+     53,
+     400,
+     242,
+     79
+    ],
+    "captain": 400
+   },
+   "204181": {
+    "player_name": "Billy Boland",
+    "picks": [
+     597,
+     88,
+     154,
+     591,
+     237,
+     401
+    ],
+    "captain": 154
+   }
+  }
+ },
+ "10": {
+  "event": 10,
+  "event_name": "Gameweek 10",
+  "twist": "Spectacular",
+  "recorded_at": "2026-11-06T09:01:00Z",
+  "projected": 39.41,
+  "captain_code": 223094,
+  "mid_pull": 0.6,
+  "picks": [
+   {
+    "code": 223094,
+    "challenge_id": 411,
+    "name": "Haaland",
+    "team": "MCI",
+    "position": "FWD",
+    "projected": 6.31,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 226597,
+    "challenge_id": 4,
+    "name": "Gabriel",
+    "team": "ARS",
+    "position": "DEF",
+    "projected": 5.652,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 201658,
+    "challenge_id": 68,
+    "name": "Tavernier",
+    "team": "BOU",
+    "position": "MID",
+    "projected": 5.537,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 17761,
+    "challenge_id": 229,
+    "name": "Tarkowski",
+    "team": "EVE",
+    "position": "DEF",
+    "projected": 5.363,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 432720,
+    "challenge_id": 385,
+    "name": "Trafford",
+    "team": "LEE",
+    "position": "GKP",
+    "projected": 4.456,
+    "multiplier": 1.0,
+    "low_confidence": false
+   },
+   {
+    "code": 219168,
+    "challenge_id": 379,
+    "name": "Isak",
+    "team": "LIV",
+    "position": "FWD",
+    "projected": 5.78,
     "multiplier": 1.0,
     "low_confidence": false
    }

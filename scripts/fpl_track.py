@@ -299,7 +299,7 @@ def report():
         third = e.get("league_third")
         gap = (e.get("entered", e["actual"]) - third) if third is not None else None
         print(f"{e['event']:>3}  {str(e.get('twist') or '-'):<18} "
-              f"{e['projected']:>6.1f} {e.get('entered', e['actual']):>6} "
+              f"{(f'{e["projected"]:.1f}' if e.get('projected') is not None else 'own'):>6} {e.get('entered', e['actual']):>6} "
               f"{(f'{pos}/{size}' if pos else '-'):>6} "
               f"{(e.get('league_points') if pos else '-'):>4} "
               f"{(third if third is not None else '-'):>5} "
@@ -329,9 +329,13 @@ def report():
     else:
         print("No league positions recorded yet - run 'score' to fetch them.")
 
-    beat = sum(1 for e in done
+    # A week James picked himself (chosen_by "James", projected None) counts
+    # in the league table but not in the model's error.
+    modelled = [e for e in done if e.get("projected") is not None]
+    n = len(modelled) or 1
+    beat = sum(1 for e in modelled
                if e["actual"] > (e.get("average_entry_score") or 0))
-    avg_err = sum(abs(e["projected"] - e["actual"]) for e in done) / n
+    avg_err = sum(abs(e["projected"] - e["actual"]) for e in modelled) / n
     print(f"Points table: beat the game-wide average in {beat} of {n}. "
           f"Mean projection error {avg_err:.1f} pts.")
     print("Beating that average is not the target - it is only a check that "
@@ -341,9 +345,9 @@ def report():
     # the line that decides whether MID_RATE_PULL in fpl_solve becomes the
     # default at GW10.
     by_pos = {}
-    for e in done:
+    for e in modelled:
         for p in e["picks"]:
-            if "actual" not in p:
+            if "actual" not in p or p.get("projected") is None:
                 continue
             c = 2 if p["code"] == e["captain_code"] else 1
             t = by_pos.setdefault(p["position"], [0, 0.0, 0])

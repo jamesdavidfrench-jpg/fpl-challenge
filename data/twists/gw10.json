@@ -1,0 +1,14 @@
+{
+  "event": 10,
+  "name": "Spectacular",
+  "description": "+1 point for every shot on target from outside the penalty area and +5 points for every goal scored from outside the penalty area. One player per club, six players, unlimited budget.",
+  "player_multipliers": [],
+  "scoring_multipliers": {},
+  "scoring_overrides": {
+    "outside_box_shots_on_target": 1,
+    "outside_box_goals": 5
+  },
+  "_scoring_note": "On top of the normal goal points, not instead of them. Same for every position, because the source names no difference. base_scoring holds both keys at 0. Modelled from attempts from outside the box - see OBOX_PRIOR_MATCHES in fpl_solve.py.",
+  "source": "https://fplchallenge.premierleague.com/ home page, read 2026-11-06: \"Gameweek 10 Challenge - Spectacular - Your players earn +1 point for every shot on target from outside the penalty area and +5 points for every goal scored from outside the penalty area. One player per club. Unlimited budget.\" The API confirms the club limit: event 10 overrides.rules.squad_team_limit = 1, released = true, overrides.scoring empty.",
+  "verified_on": "2026-11-06"
+}
