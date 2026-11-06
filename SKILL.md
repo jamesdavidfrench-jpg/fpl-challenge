@@ -359,6 +359,14 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   this season's xG runs 6% above actual. The fit table sits above the
   constant. Re-fit around GW10. `python scripts/fpl_solve.py --teams` prints
   every club's multipliers.
+- **Long-range shooting is modelled from attempts outside the box** (GW10
+  "Spectacular"). Each player's attempts this season are pulled towards his
+  position's rate with 5 matches' weight, then multiplied by the league's rate
+  per attempt. That rate is 19% on target without scoring and 4.8% scored.
+  `fpl_ceiling.py` does not simulate it, so its calibration correction runs up
+  to 20% for heavy long-range shooters. Expect that in such weeks. Read the
+  season totals, not the cached per-week live files: those cached before GW9
+  show zero shots on target from range.
 - **Cards, own goals, penalty saves and misses are unmodelled**, as is
   `short_play` - everyone who plays is credited the full appearance points, so
   substitutes are slightly overstated.
@@ -409,10 +417,16 @@ since they can no longer be added. Pass `--include-started` to see them anyway.
   The shortfall is in goals, bonus and assists. Refitting the pull to average
   on past seasons, and the weight on this season, both left the current
   settings where they are. `--mid-pull` (on `fpl_solve`, `fpl_ceiling` and
-  `fpl_track record`) applies a stronger pull as an option. The default is 1.0.
-  Evidence and the replay are above `MID_RATE_PULL` in `fpl_solve.py`. At
-  GW10, read the by-position lines at the end of `fpl_track.py report`. If
-  midfielders are still the gap, promote it.
+  `fpl_track record`) sets the pull. **Promoted from 1.0 to 0.6 at GW10
+  (2026-11-06)**, because through GW8 midfield picks were projected 164.8 and
+  scored 82. Of 17 picks, only one beat his projection. Evidence and the replay
+  are above `MID_RATE_PULL` in `fpl_solve.py`. Re-check at GW15.
+
+  **The league leader's edge was the armband, measured 2026-11-06.** Over
+  GW1-9 George's five non-captain players scored 34.9 a week, below James's
+  36.4. His captains scored 18.1 a week against James's 7.2, which is the
+  whole 182-point gap. His captain was Haaland three times and a set-piece
+  centre-back three times. It was never a creative midfielder in a close call.
 
   **Until then, treat a midfield captain within about 1.5 points of a
   defender or forward as a coin toss, and say so.** GW6 (Fernandes over
