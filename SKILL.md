@@ -75,9 +75,9 @@ python scripts/fpl_track.py record
    because the turn closed on a question box. Write the sheet first.
 
 5. **Run the ceiling squad too.** Run `fpl_ceiling.py`. It answers a different
-   question - not which squad scores most on average, but which is most likely
-   to clear the score that wins James's league. Run it every week, and report
-   both. It takes under a minute.
+   question - not which squad scores most on average, but which earns the most
+   league points against what James's rivals have actually scored. Run it every
+   week, and report both. It takes under a minute.
 
    The two often agree, and saying so is a result. When they differ, say what
    the ceiling squad gives up in average points and what it buys in chance of
@@ -85,11 +85,17 @@ python scripts/fpl_track.py record
    other - the recorded pick is whichever he enters, and `fpl_track.py` has
    `chosen_by` and `deviation_reason` for exactly this.
 
-   `--league` ranks squads by expected league points instead, each simulated
-   score replayed against the rivals' real scores from the weeks already
-   played. It is an option, not the default: replayed over GW3-6 it earned 1
-   league point to the 80 rule's 3, which four weeks cannot separate. Re-run
-   that comparison at GW10 before promoting it. Numbers above `MIN_LEAGUE_WEEKS`.
+   **By default it ranks squads by expected league points**, since GW10. Each
+   simulated score is replayed against the rivals' real scores from the weeks
+   already played. `--target 80` restores the old ranking, by chance of
+   clearing a score. A GW3-8 replay with the current model chose this one. It
+   scored 377 points and 5 league points, against 347 and 5 for the 80 rule
+   and 270 and 1 for the squads actually entered. Its edge was two captain
+   calls. Re-check at GW15. The table sits above `MIN_LEAGUE_WEEKS`.
+
+   ⚠️ In an unrestricted week the search can return a single squad, and the
+   top two are often within 0.01 league points. Run a second `--seed` before
+   treating a swap as real.
 
    **The armband is worth as much as a sixth player, so name the runner-up
    captain and the gap.** GW4 and GW6 were both lost on it: Fernandes was

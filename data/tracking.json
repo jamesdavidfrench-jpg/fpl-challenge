@@ -2115,7 +2115,7 @@
   "twist": "Spectacular",
   "recorded_at": "2026-11-06T09:01:00Z",
   "projected": 39.41,
-  "captain_code": 223094,
+  "captain_code": 219168,
   "mid_pull": 0.6,
   "picks": [
    {
@@ -2178,6 +2178,7 @@
     "multiplier": 1.0,
     "low_confidence": false
    }
-  ]
+  ],
+  "deviation_reason": "2026-11-06: captain moved from Haaland to Isak. The ceiling script, now ranking by expected league points by default, captains Isak in every run; Haaland leads on average by 0.5."
  }
 }

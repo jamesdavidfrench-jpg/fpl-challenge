@@ -52,12 +52,28 @@ DEFAULT_TARGET = 80
 # the rivals' actual scores, averaged over every week scored so far - see
 # league_value_curve().
 #
-# It is an option, not the default, because it has not earned that yet.
-# Replayed over GW3-6 on 2026-10-16, each week judged against a curve built
-# from the other weeks, the top squad by expected league points scored 197 for
-# 1 league point; the top squad by chance of 80 scored 218 for 3. Most of the
-# gap is one GW5 call (the 80 squad had Tarkowski, 22 points), and four weeks
-# cannot tell the two apart. Re-run the comparison at GW10.
+# The default since GW10 (2026-11-06). Before that it was an option: replayed
+# over GW3-6 on 2026-10-16 it scored 197 for 1 league point against the 80
+# rule's 218 for 3, which four weeks could not separate.
+#
+# The GW10 re-run replayed GW3-8 on each week's committed players.json and
+# starters.json with the current model. Each week was judged against a curve
+# built from the other weeks, and scored with the real points and the rivals'
+# real totals. Totals over the six weeks, as points / league points:
+#
+#   aim                     midfield pull 0.6    midfield pull 1.0
+#   best average             369 / 4.0            324 / 3.0
+#   chance of 60+            343 / 2.0            343 / 3.0
+#   chance of 80+            347 / 5.0            338 / 4.5
+#   expected league points   377 / 5.0            330 / 4.0
+#
+# The squads actually entered in those weeks scored 270 for 1. At pull 0.6,
+# league points never lost to the 80 rule by more than 4 in a week, and won
+# GW7 by 12 and GW8 by 22. Both of those were captain calls: Thomas and Gabriel
+# against Jackson and Fernandes. Six weeks is still small, and this picks the
+# best of four aims on the same six, so re-check at GW15.
+#
+# --target N still ranks by the chance of clearing N.
 #
 # Needs this many scored weeks before the curve is built at all.
 MIN_LEAGUE_WEEKS = 3
@@ -871,11 +887,11 @@ def describe(pool, squad, cap):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--target", type=int, default=DEFAULT_TARGET,
-                    help="score to clear (default: what wins James's league)")
+    ap.add_argument("--target", type=int, default=None,
+                    help="rank by the chance of clearing this score instead of "
+                         "by expected league points")
     ap.add_argument("--league", action="store_true",
-                    help="rank by expected league points against the rivals' "
-                         "past scores instead of by the chance of clearing --target")
+                    help="the default since GW10; kept so old commands still run")
     ap.add_argument("--trials", type=int, default=20000)
     ap.add_argument("--top", type=int, default=6)
     ap.add_argument("--seed", type=int, default=7)
@@ -903,16 +919,16 @@ def main():
     pool = build_pool(data, twist, starters, target_teams)
     print("Gameweek {} - {}".format(data["event"]["id"], (twist or {}).get("name", "no twist")))
     print("Pool: {} players from {}".format(len(pool), ", ".join(sorted(target_teams))))
-    curve = league_value_curve() if args.league else None
-    target = args.target
+    curve = league_value_curve() if args.target is None else None
+    target = args.target if args.target is not None else DEFAULT_TARGET
     if curve:
         values, any_points, weeks = curve
         print("Ranked by expected league points, each simulated score replayed "
               "against the rivals' real scores in {} weeks.\n".format(weeks))
     else:
-        if args.league:
-            print("Fewer than {} league weeks scored, so ranking by --target "
-                  "instead.".format(MIN_LEAGUE_WEEKS))
+        if args.target is None:
+            print("Fewer than {} league weeks scored, so ranking by the chance "
+                  "of clearing {}.".format(MIN_LEAGUE_WEEKS, target))
         values = threshold_values(target)
         print("Target to clear: {} pts\n".format(target))
 
